@@ -1,0 +1,115 @@
+/*
+ * Sidebar
+ */
+
+.sidebar {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 100; /* Behind the navbar */
+  padding: 48px 0 0; /* Height of navbar */
+  box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
+}
+
+.sidebar-sticky {
+  position: relative;
+  top: 0;
+  height: calc(100vh - 48px);
+  padding-top: .5rem;
+  overflow-x: hidden;
+  overflow-y: auto; /* Scrollable contents if viewport is shorter than content. */
+}
+
+@supports ((position: -webkit-sticky) or (position: sticky)) {
+  .sidebar-sticky {
+    position: -webkit-sticky;
+    position: sticky;
+  }
+}
+
+.sidebar .nav-link {
+  font-weight: 500;
+  color: #333;
+  font-size: small;
+}
+
+.sidebar .nav-link .feather {
+  margin-right: 4px;
+  color: #999;
+}
+
+.sidebar .nav-link.active {
+  color: #007bff;
+}
+
+.sidebar .nav-link:hover .feather,
+.sidebar .nav-link.active .feather {
+  color: inherit;
+}
+
+.sidebar-heading {
+  font-size: .75rem;
+  text-transform: uppercase;
+}
+
+.sidebar .nav-folder {
+  font-weight: 500;
+  color: #333;
+  padding: .5rem 1rem;
+  font-size: small;
+} 
+.sidebar .nav-folder span {
+  color: #999;
+} 
+
+
+/*
+ * DataTable
+ */
+
+table#maintable {
+  font-size: .8rem;
+}
+
+table#maintable td.link {
+  text-decoration: underline;
+  color: blue;
+  cursor: pointer;
+}
+table#maintable th, table#maintable td {
+  padding: 0.5rem;
+}
+table#maintable tr.alert-danger.odd {
+  background-color:#f8d7da !important;
+}
+
+.delayed {
+  display: none;
+}
+
+
+/* */
+
+table#resumen_posesiones {
+  font-size: .8rem;
+}
+
+table#resumen_posesiones th {
+  white-space: nowrap;
+  text-align: center;
+}
+
+table#resumen_posesiones td {
+  text-align: center;
+}
+
+/* Ajustes a los tipos estándar de BootStrap*/
+
+.sidebar {
+  padding: 0 !important;
+}
+
+.card-header {
+  background-color: rgba(0,123,255,0.1) !important;
+}

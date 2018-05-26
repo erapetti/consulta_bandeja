@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="../../sueldos/css/bootstrap.min.css">
+    <!-- link rel="stylesheet" href="../../sueldos/css/font-awesome.min.css" -->
+    <link rel="stylesheet" href="../../sueldos/css/fontawesome-all.css">
+    <link rel="stylesheet" href="../../sueldos/css/datatables.min.css">
+
+    <title>Consulta a la bandeja de sueldos</title>
+
+    <link href="../../sueldos/consulta_bandeja.css" rel="stylesheet">
+
+  </head>
+  <body>
+
+    <div class="container-fluid">
+      <div class="row">
+	<nav class="col-md-2 d-none d-md-block bg-light sidebar">
+	  <div class="sidebar-sticky">
+
+	    <ul class="nav flex-column">
+
+	      <li class="nav-item nav-folder">
+		  <span class="fas fa-share-square feather"></span>
+		  Corporativo <span class="sr-only">(current)</span>
+
+		  <ul class="nav flex-column ml-3">
+	          <li class="nav-item">
+		    <a class="nav-link[% IF opcion=="corporativo" %] active[% END %]" href="?opcion=corporativo[% IF cedula %]&cedula=[% cedula %][% END %]">
+		      <span class="fas fa-search feather"></span>
+		      Consulta
+		    </a>
+	          </li>
+	          <li class="nav-item">
+		    <a class="nav-link[% IF opcion=="certificados" %] active[% END %]" href="?opcion=certificados[% IF cedula %]&cedula=[% cedula %][% END %]">
+		      <span class="fas fa-medkit feather"></span>
+		      Certificados Médicos
+		    </a>
+	          </li>
+		  </ul>
+	      </li>
+
+	      <li class="nav-item nav-folder">
+		  <span class="fas fa-share-square feather"></span>
+		  Bandeja de DD <span class="sr-only">(current)</span>
+
+		  <ul class="nav flex-column ml-3">
+		  <li class="nav-item">
+		    <a class="nav-link[% IF opcion=="consulta" %] active[% END %]" href="?opcion=consulta[% IF cedula %]&cedula=[% cedula %][% END %]">
+		      <span class="fas fa-search feather"></span>
+		      Consulta
+		    </a>
+		  </li>
+		  <li class="nav-item">
+		    <a class="nav-link[% IF opcion=="resumen" %] active[% END %]" href="?opcion=resumen[% IF cedula %]&cedula=[% cedula %][% END %]">
+		      <span class="fas fa-circle feather"></span>
+		      Pendientes
+		    </a>
+		  </li>
+		  <li class="nav-item">
+		    <a class="nav-link[% IF opcion=="errores" %] active[% END %]" href="?opcion=errores[% IF cedula %]&cedula=[% cedula %][% END %]">
+		      <span class="fas fa-times-circle feather"></span>
+		      Errores
+		    </a>
+		  </li>
+		  </ul>
+	      </li>
+
+	      <li class="nav-item nav-folder">
+		  <span class="fas fa-share-square feather"></span>
+		  SIAP <span class="sr-only">(current)</span>
+
+		  <ul class="nav flex-column ml-3">
+	          <li class="nav-item">
+		    <a class="nav-link[% IF opcion=="siap" %] active[% END %]" href="?opcion=siap[% IF cedula %]&cedula=[% cedula %][% END %]">
+		      <span class="fas fa-search feather"></span>
+		      Consulta
+		    </a>
+	          </li>
+	          <li class="nav-item">
+		    <a class="nav-link[% IF opcion=="suspensiones" %] active[% END %]" href="?opcion=suspensiones[% IF cedula %]&cedula=[% cedula %][% END %]">
+		      <span class="fas fa-times feather"></span>
+		      Marcas de suspensión de pagos
+		    </a>
+	          </li>
+	          <li class="nav-item">
+		    <a class="nav-link[% IF opcion=="procesos" %] active[% END %]" href="?opcion=procesos[% IF cedula %]&cedula=[% cedula %][% END %]">
+		      <span class="fas fa-tasks feather"></span>
+		      Procesos
+		    </a>
+	          </li>
+		  </ul>
+	      </li>
+
+[% IF admin %]
+	      <hr class="w-100">
+
+              <li class="nav-item">
+                <a class="nav-link[% IF opcion=="cargar" %] active[% END %]" href="?opcion=cargar[% IF cedula %]&cedula=[% cedula %][% END %]">
+                  <span class="fas fa-play-circle feather"></span>
+                  Cargar bandeja de DD
+                </a>
+              </li>
+[% END %]
+
+	    </ul>
+	  </div>
+	</nav>
+
+	<main role="main" class="col-md-9 ml-sm-auto col-lg-10 px-4 mb-3">
+
+	  <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+	    <h1 class="h2">[% titulo %]</h1>
+	  </div>
+
+[% IF buscador_cedulas %]
+	  <form class="form-inline mb-5">
+	      <input type="hidden" name="opcion" value="[% opcion %]">
+	      <label for="cedula" class="mr-3">Número de cédula:</label>
+	      <div class="input-group">
+		<div class="input-group">
+		  <input type="cedula" class="form-control" id="cedula" aria-describedby="cedulaHelp" placeholder="12345678" name="cedula" value="[% cedula %]">
+		  <div class="input-group-append">
+		    <button type="submit" class="btn btn-primary"><span class="fas fa-search" aria-hidden="true"></span></button>
+		  </div>
+		</div>
+	      </div>
+
+	      <small id="cedulaHelp" class="form-text text-muted ml-3"></small>
+
+	  [% IF nombre %]<label>[% nombre %]</label>[% END %]
+	  </form>
+[% END %]
+
+[% IF js %]
+	  <div class="card mb-3">
+  [% IF subtitulo %]
+	    <div class="card-header">
+	      [% subtitulo %]
+	    </div>
+  [% END %]
+
+	    <div id="datatable" class="mt-5">
+	      <table id="maintable" class="display table table-striped pt-3 mt-3" style="width:100%">
+	        <thead></thead>
+	        <tbody></tbody>
+	      </table>
+	    </div>
+	  </div>
+[% ELSE %]
+  [% IF cedula %]
+	  <p>No se encontraron registros</p>
+  [% END %]
+[% END %]
+
+[% BLOCK block_resumen_posesiones %]
+	  <div class="card mb-3">
+	    <div class="card-header">
+	      Estado actual del docente: cantidad de horas según ciclo de pago
+	    </div>
+	    <div class="my-1 mx-3">
+	      <table id="resumen_posesiones" class="table table-bordered pt-3 mt-3" style="width:100%">
+	        <thead><th>Ciclo 0</th><th>Ciclo 1</th><th>Ciclo 2</th><th>Ciclo 3</th><th>Ciclo 4</th><th>Ciclo 5</th><th>Total</th></thead>
+	        <tbody><td>[% c0 %]</td><td>[% c1 %]</td><td>[% c2 %]</td><td>[% c3 %]</td><td>[% c4 %]</td><td>[% c5 %]</td><td>[% total %]</td></tbody>
+	      </table>
+	    </div>
+	  </div>
+[% END %][% resumen_posesiones %]
+
+[% IF btn %]
+	  <button type="button" class="btn [% btn_class %] delayed" data-toggle="modal" data-target="#myModal">[% btn %]</button>
+[% END %]
+	</main>
+      </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="myModalLabel">[% modal_title %]</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            [% modal_body %]
+	    <div id="modal_message" class="alert alert-danger mt-3" style="display:none" role="alert"></div>
+	    <div class="progress mt-3" id="progress" style="display:none">
+	      <div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+	    </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+	    <button type="button" class="btn btn-primary" id="modal_submit" data-loading-text="<i class='fas fa-circle-notch fa-spin'></i> [% modal_processing %]" data-cedula="[% cedula %]" data-opcion="[% modal_opcion %]">[% modal_button %]</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="../../sueldos/js/jquery-3.3.1.min.js"></script>
+    <script src="../../sueldos/js/popper.min.js"></script>
+    <script src="../../sueldos/js/bootstrap.min.js"></script>
+    <script src="../../sueldos/js/datatables.min.js"></script>
+
+    <script type="text/javascript">
+      var head;
+      var body;
+      $(document).ready(function(){
+[% js %]
+      });
+    </script>
+    <script type="text/javascript">
+      $(document).ready(function(){
+	$('#maintable').DataTable({
+	  data: body,
+	  columns: head,
+	  lengthMenu: [ 25, 50, 75, 100 ],
+	  language: {
+		search: "Filtrar por:",
+		info: "Mostrando de _START_ a _END_ de _TOTAL_ filas",
+		infoFiltered: "(filtradas de _MAX_ filas en total)",
+	        lengthMenu: "Mostrar _MENU_ registros",
+	        paginate: {
+	              previous: "Anterior",
+	              next: "Siguiente",
+	        },
+	  },
+	  [% data_table_options %]
+
+	});
+      });
+    </script>
+    <script type="text/javascript">
+	$('#modal_submit').on('click', function() {
+	    var $this = $(this);
+	    $this.attr('disabled',true);
+	    $this.attr('txt-backup', $this.html());
+	    $this.html( $this.attr('data-loading-text') );
+	    $('#modal_message').text('');
+	    $('#progress .progress-bar').attr('aria-valuenow','0');
+	    $('#progress .progress-bar').css('width','0');
+	    $('#progress').show();
+	    var myTimer = setInterval(function() {
+		var v = parseFloat($('#progress .progress-bar').attr('aria-valuenow')) + 0.1;
+		if (v<95) {
+			$('#progress .progress-bar').attr('aria-valuenow', v);
+			$('#progress .progress-bar').css('width', v+'%');
+		}
+	    }, 100);
+
+	    $.get('?', {cedula:$this.attr('data-cedula'),opcion:$this.attr('data-opcion')}
+	    ).done(function(data) {
+	       clearInterval(myTimer);
+	       $this.html( $this.attr('txt-backup') );
+	       $('#progress .progress-bar').attr('aria-valuenow','100');
+	       $('#progress .progress-bar').css('width','100%');
+
+	       if (data.error !== "") {
+	         $('#modal_message').text(data.error).show();
+	         $('#myModal').on('hidden.bs.modal', function () {
+	           location.reload();
+	         });
+
+	       } else {
+	         // Espero a que terminen las animaciones y recargo la página
+	         $(":animated").promise().done(function() {
+	           location.reload();
+	         });
+	       }
+
+	    }).fail(function() {
+	       $this.html( $this.attr('txt-backup') );
+	       $('#modal_message').text('Error al procesar la respuesta del servidor').show();
+	       $('#myModal').on('hidden.bs.modal', function () {
+	         location.reload();
+	       });
+	    });
+	});
+    </script>
+
+  </body>
+</html>
