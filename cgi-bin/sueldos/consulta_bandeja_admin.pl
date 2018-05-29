@@ -404,7 +404,7 @@ sub coordinacion ($$$) {
 
 	my $SQL = "
 
-SELECT 0 DependId,CicloId,HrsCoordinacionFechaAlta,date_add(HrsCoordinacionFechaAlta, interval 1 day) manana,sum(HrsCoordConSigno)
+SELECT 0 DependId,CicloDePago,HrsCoordinacionFechaAlta,date_add(HrsCoordinacionFechaAlta, interval 1 day) manana,sum(HrsCoordConSigno)
 FROM HORAS_COORDINACION join Personas.PERSONASDOCUMENTOS on coordperid=perid and paiscod='UY' and doccod='CI'
 WHERE perdocid='".$cedula."'
 GROUP BY 1,2,3,4
@@ -552,6 +552,9 @@ sub opcion_corporativo_consulta($$) {
 
 		$rtvars->{js} = data2js($corp);
 		$rtvars->{subtitulo} = "Designaciones:";
+
+		$rtvars->{resumen_posesiones} = resumen_posesiones($corp);
+
 	}
 
 	$rtvars->{titulo} = "Consulta al Sistema Corporativo";
@@ -608,34 +611,35 @@ sub opcion_consulta_bandeja($$) {
 			$rtvars->{js} = data2js($resultado);
 			$rtvars->{subtitulo} = "Últimos datos en la bandeja:";
 
-			if ($rtvars->{admin}) {
-				# busco pendientes para definir si habilito borrar o reliquidar:
-				my $pendientes = 0;
-				foreach my $row (@{$resultado->{data}}) {
-					$row->[$#{$row}] =~ /Pendiente/ and $pendientes = 1 and last;
-				}
-
-				if ($pendientes) {
-					$rtvars->{btn} = 'Borrar pendientes';
-					$rtvars->{btn_class} = 'btn-danger';
-					$rtvars->{modal_title} = 'Borrar pendientes';
-					$rtvars->{modal_body} = 'Esta operación va a borrar la liquidación pendiente para este docente';
-					$rtvars->{modal_processing} = 'Borrando';
-					$rtvars->{modal_button} = 'Borrar';
-					$rtvars->{modal_opcion} = 'borrar';
-				} else {
-					$rtvars->{btn} = 'Reliquidar';
-					$rtvars->{btn_class} = 'btn-primary';
-					$rtvars->{modal_title} = 'Reliquidar';
-					$rtvars->{modal_body} = 'Esta operación va a generar una nueva liquidación para este docente';
-					$rtvars->{modal_processing} = 'Reliquidando';
-					$rtvars->{modal_button} = 'Reliquidar';
-					$rtvars->{modal_opcion} = 'reliquidar';
-				}
-
-			}
 			# esto va para afuera del if:
 			$rtvars->{resumen_posesiones} = resumen_posesiones($resultado);
+		}
+
+		if ($rtvars->{admin} && defined($tvars{nombre})) {
+			# busco pendientes para definir si habilito borrar o reliquidar:
+			my $pendientes = 0;
+			foreach my $row (@{$resultado->{data}}) {
+				$row->[$#{$row}] =~ /Pendiente/ and $pendientes = 1 and last;
+			}
+
+			if ($pendientes) {
+				$rtvars->{btn} = 'Borrar pendientes';
+				$rtvars->{btn_class} = 'btn-danger';
+				$rtvars->{modal_title} = 'Borrar pendientes';
+				$rtvars->{modal_body} = 'Esta operación va a borrar la liquidación pendiente para este docente';
+				$rtvars->{modal_processing} = 'Borrando';
+				$rtvars->{modal_button} = 'Borrar';
+				$rtvars->{modal_opcion} = 'borrar';
+			} else {
+				$rtvars->{btn} = 'Reliquidar';
+				$rtvars->{btn_class} = 'btn-primary';
+				$rtvars->{modal_title} = 'Reliquidar';
+				$rtvars->{modal_body} = 'Esta operación va a generar una nueva liquidación para este docente';
+				$rtvars->{modal_processing} = 'Reliquidando';
+				$rtvars->{modal_button} = 'Reliquidar';
+				$rtvars->{modal_opcion} = 'reliquidar';
+			}
+
 		}
 	}
 
@@ -690,9 +694,16 @@ sub opcion_siap_consulta ($$) {
 	my $dbh_siap = $rparam->{dbh_siap};
 	my $cedula = $rparam->{cedula};
 
-	my $siap = siap_buscar($dbh_siap, $cedula);
+	if (defined($cedula)) {
 
-	$rtvars->{js} = data2js($siap);
+		my $siap = siap_buscar($dbh_siap, $cedula);
+
+		$rtvars->{js} = data2js($siap);
+		$rtvars->{subtitulo} = "Últimos datos en SIAP";
+
+		$rtvars->{resumen_posesiones} = resumen_posesiones($siap);
+	}
+
 	$rtvars->{titulo} = "Consulta a SIAP";
 	$rtvars->{buscador_cedulas} = 1;
 
@@ -740,7 +751,7 @@ sub opcion_borrar ($$) {
 		json_response({error=>"Parámetros incorrectos"});
 	}
 
-	my ($code, $text) = proxy("http://ssueldos01.ces.edu.uy/cgi-bin/borrar.pl?cedula=$cedula");
+	my ($code, $text) = proxy("http://ssueldos01.ces.edu.uy/cgi-bin/sueldos/borrar.pl?cedula=$cedula");
 	if ($code == 200) {
 		json_response($text);
 	} else {
@@ -765,7 +776,7 @@ sub opcion_reliquidar ($$) {
 		json_response({error=>"Parámetros incorrectos"});
 	}
 
-	my ($code, $text) = proxy("http://ssueldos01.ces.edu.uy/cgi-bin/reliquidar.pl?desde=$desde\&hasta=$hasta\&cedula=$cedula");
+	my ($code, $text) = proxy("http://ssueldos01.ces.edu.uy/cgi-bin/sueldos/reliquidar.pl?desde=$desde\&hasta=$hasta\&cedula=$cedula");
 	if ($code == 200) {
 		json_response($text);
 	} else {
