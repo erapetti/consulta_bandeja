@@ -58,7 +58,7 @@ my $dbh_personal = dbConnect("Personal") || error("No se puede establecer una co
 
 if ($cedula) {
 	$tvars{cedula} = $cedula;
-	$tvars{nombre} = nombre($dbh_personal,$cedula) || '¿Número de cédula incorrecto?';
+	$tvars{nombre} = nombre($dbh_personal,$cedula);
 }
 
 my %dispatcher = (
@@ -77,7 +77,7 @@ my %dispatcher = (
 my %param = (
 	dbh_siap => $dbh_siap,
 	dbh_personal => $dbh_personal,
-	cedula => $cedula
+	cedula => (defined($tvars{nombre}) ? $cedula : undef),
 );
 
 my $err;
@@ -168,24 +168,39 @@ SELECT perdocid,
        FuncAsignadaFchHasta,
        DependDesc,
        if(AsignDesc<>'',AsignDesc,if(DenomCargoDesc='DOCENTE',concat(DenomCargoDesc,':',FuncionDesc),DenomCargoDesc)),
+       suplencias,
        RelLabCicloPago,
-       sum(CargaHorariaCantHoras)
-FROM v_funciones_del_personal
+       format(sum(CargaHorariaCantHoras),2)
+FROM v_funciones_del_personal v
+
+-- suplencias, reservas de cargo, etc:
+LEFT JOIN (
+       select s.RelLabId,group_concat(distinct concat(SuplCausDesc,': ',date(RLsupl.RelLabVacanteFchPubDesde),' a ',date(RLsupl.RelLabCeseFchReal)) order by RLsupl.RelLabVacanteFchPubDesde separator '<br>') suplencias
+       from SUPLENCIAS s
+       join SUPLENCIAS_CAUSALES using (SuplCausId)
+       join RELACIONES_LABORALES RLtit using (RelLabId)
+       join RELACIONES_LABORALES RLsupl on RLsupl.SillaId=RLtit.SillaId and RLsupl.RelLabVacantePrioridad=RLtit.RelLabVacantePrioridad+1
+       where SuplCausId in (6,7,10,15)
+         and date(RLsupl.RelLabVacanteFchPubDesde)<date(RLsupl.RelLabCeseFchReal)
+	 and year(RLsupl.RelLabCeseFchReal)>=year(curdate())
+       group by 1
+) S ON S.RelLabId=v.RelLabId
+
 WHERE perdocid='".$cedula."'
   AND (FuncAsignadaFchHasta>='2018-03-01' OR FuncAsignadaFchHasta='1000-01-01')
-GROUP BY 1,2,3,4,5,6
+GROUP BY 1,2,3,4,5,6,7
 ORDER BY 2,4,5,6,3;
 
 	");
 	$sth->execute();
 
-	(defined($sth)) or return undef;
+	(defined($sth) && !$DBI::errstr) or return undef;
 
 	my $rows = $sth->fetchall_arrayref;
 
 	$sth->finish;
 
-	return {head=>["Cédula","Desde","Hasta","Dependencia","Cargo/Asignatura","Ciclo","Horas"], data=>$rows};
+	return {head=>["Cédula","Desde","Hasta","Dependencia","Cargo/Asignatura","Suplencias","Ciclo","Horas"], data=>$rows};
 }
 
 sub corporativo_certificados($$) {
@@ -404,7 +419,7 @@ sub coordinacion ($$$) {
 
 	my $SQL = "
 
-SELECT 0 DependId,CicloDePago,HrsCoordinacionFechaAlta,date_add(HrsCoordinacionFechaAlta, interval 1 day) manana,sum(HrsCoordConSigno)
+SELECT 0 DependId,CicloDePago,HrsCoordinacionFechaAlta,date_add(HrsCoordinacionFechaAlta, interval 1 day) manana,format(sum(HrsCoordConSigno),2)
 FROM HORAS_COORDINACION join Personas.PERSONASDOCUMENTOS on coordperid=perid and paiscod='UY' and doccod='CI'
 WHERE perdocid='".$cedula."'
 GROUP BY 1,2,3,4
@@ -421,7 +436,7 @@ ORDER BY 1,2,3,4
 		if (!defined($coord{$row[0]}{$row[1]})) {
 			$coord{$row[0]}{$row[1]} = { horas => $row[4], desde => $row[2] };
 		} else {
-			push @{$data}, [$cedula, $coord{$row[0]}{$row[1]}{desde}, $row[2], '', 'COORDINACION', $row[1], $coord{$row[0]}{$row[1]}{horas}];
+			push @{$data}, [$cedula, $coord{$row[0]}{$row[1]}{desde}, $row[2], '', 'COORDINACION', '', $row[1], $coord{$row[0]}{$row[1]}{horas}];
 			if ($coord{$row[0]}{$row[1]}{horas} + $row[4] > 0) {
 				$coord{$row[0]}{$row[1]}{horas} += $row[4];
 				$coord{$row[0]}{$row[1]}{desde} = $row[3];
@@ -433,7 +448,7 @@ ORDER BY 1,2,3,4
 	}
 	foreach my $dependid (keys %coord) {
 		foreach my $cicloid (keys %{$coord{$dependid}}) {
-			push @{$data}, [$cedula, $coord{$dependid}{$cicloid}{desde}, '', '', 'COORDINACION', $cicloid, $coord{$dependid}{$cicloid}{horas}];
+			push @{$data}, [$cedula, $coord{$dependid}{$cicloid}{desde}, '', '', 'COORDINACION', '', $cicloid, $coord{$dependid}{$cicloid}{horas}];
 		}
 	}
 
@@ -615,7 +630,7 @@ sub opcion_consulta_bandeja($$) {
 			$rtvars->{resumen_posesiones} = resumen_posesiones($resultado);
 		}
 
-		if ($rtvars->{admin} && defined($tvars{nombre})) {
+		if ($rtvars->{admin} && defined($tvars{nombre}) && $tvars{nombre} ne '') {
 			# busco pendientes para definir si habilito borrar o reliquidar:
 			my $pendientes = 0;
 			foreach my $row (@{$resultado->{data}}) {
