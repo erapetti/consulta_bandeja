@@ -181,7 +181,7 @@ LEFT JOIN (
        join RELACIONES_LABORALES RLtit using (RelLabId)
        join RELACIONES_LABORALES RLsupl on RLsupl.SillaId=RLtit.SillaId and RLsupl.RelLabVacantePrioridad=RLtit.RelLabVacantePrioridad+1
        where SuplCausId in (6,7,10,15)
-         and date(RLsupl.RelLabVacanteFchPubDesde)<date(RLsupl.RelLabCeseFchReal)
+         and date(RLsupl.RelLabVacanteFchPubDesde)<=date(RLsupl.RelLabCeseFchReal)
 	 and year(RLsupl.RelLabCeseFchReal)>=year(curdate())
        group by 1
 ) S ON S.RelLabId=v.RelLabId
