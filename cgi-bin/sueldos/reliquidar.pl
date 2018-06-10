@@ -27,13 +27,15 @@ if (!$desde || !$hasta) {
 
 chdir '/var/www/bandeja';
 
-open(LOCKFH,"bj-7.3.5.py");
+my $bandeja = "bj-8.0.2.py";
+
+open(LOCKFH,$bandeja);
 if (! flock(LOCKFH, LOCK_EX|LOCK_NB)) {
 	print '{"error":"Ya hay un proceso de reliquidación activo. Reintente luego"}';
 	exit(0);
 }
 
-open(CMD, "/usr/bin/python bj-7.3.5.py --inicio $desde --fin $hasta --ci $cedula |");
+open(CMD, "/usr/bin/python $bandeja --inicio $desde --fin $hasta --ci $cedula |");
 local $/ = undef;
 my $out = <CMD>;
 close(CMD);
@@ -43,10 +45,14 @@ if ($? ne 0) {
 	exit(0);
 }
 
-my $out =~ s/\n/ /g;
+$out =~ s/\n/ /g;
 $out =~ s/"/\\"/g;
 
-$out .= posbandeja($cedula);
+my $err = posbandeja($cedula);
+if ($err) {
+	print '{"error":"El proceso de posbandeja terminó con error: '.$err.'","salida":"'.$out.'"}';
+	exit(0);
+}
 
 print '{"error":"","salida":"'.$out.'"}';
 flock(LOCKFH, LOCK_UN);
@@ -95,11 +101,26 @@ sub posbandeja($) {
 
 	my $dbh = dbConnect("siap_ces_tray");
 
+	# Borro registros posteriores a hoy
+	$dbh->do("
+delete from ihorasclase
+where perdocnum = '$cedula'
+  and DesFchProc is null
+  and desfchcarga = curdate()
+  and (HorClaFchCese < HorClaFchPos or HorClaFchPos > curdate())
+        ");
+	($DBI::errstr) and $out .= $DBI::errstr.";";
+
+
+	# Ingreso bajas en dependencias donde ya no tiene horas
 	$dbh->do("
 insert into ihorasclase
-(PerDocTpo,PerDocPaisCod,PerDocNum,HorClaCarNumVer,HorClaFchIng,HorClaInsCod,HorClaCurTpo,HorClaCur,HorClaArea,HorClaAnio,HorClaGrupo,HorClaHorTope,HorClaCar,HorClaFchPos,HorClaFchCese,HorClaObs,HorClaNumInt,HorClaParPreCod,HorClaCompPor,HorClaLote,HorClaAudUsu,HorClaFchLib,HorClaCauBajCod,HorClaAsiCod,HorClaMod,HorClaHor,HorClaBajLog,HorClaCic,HorClaEmpCod,DesFchProc,Resultado,Mensaje,HorClaCarNum,DesFchCarga,NroLote)
+(HorClaId,PerDocTpo,PerDocPaisCod,PerDocNum,HorClaCarNumVer,HorClaFchIng,HorClaInsCod,HorClaCurTpo,HorClaCur,HorClaArea,HorClaAnio,HorClaGrupo,HorClaHorTope,HorClaCar,HorClaFchPos,HorClaFchCese,HorClaObs,HorClaNumInt,HorClaParPreCod,HorClaCompPor,HorClaLote,HorClaAudUsu,HorClaFchLib,HorClaCauBajCod,HorClaAsiCod,HorClaMod,HorClaHor,HorClaBajLog,HorClaCic,HorClaEmpCod,DesFchProc,Resultado,Mensaje,HorClaCarNum,DesFchCarga,NroLote)
+
 select null HorClaId,
-       HC1.PerDocTpo,HC1.PerDocPaisCod,HC1.PerDocNum,HC1.HorClaCarNumVer,HC1.HorClaFchIng,HC1.HorClaInsCod,HC1.HorClaCurTpo,HC1.HorClaCur,HC1.HorClaArea,HC1.HorClaAnio,HC1.HorClaGrupo,HC1.HorClaHorTope,HC1.HorClaCar,HC1.HorClaFchPos,HC1.HorClaFchCese,HC1.HorClaObs,HC1.HorClaNumInt,HC1.HorClaParPreCod,HC1.HorClaCompPor,HC1.HorClaLote,HC1.HorClaAudUsu,HC1.HorClaFchLib,HC1.HorClaCauBajCod,HC1.HorClaAsiCod,HC1.HorClaMod,HC1.HorClaHor,
+       HC1.PerDocTpo,HC1.PerDocPaisCod,HC1.PerDocNum,HC1.HorClaCarNumVer,HC1.HorClaFchIng,HC1.HorClaInsCod,HC1.HorClaCurTpo,HC1.HorClaCur,HC1.HorClaArea,HC1.HorClaAnio,HC1.HorClaGrupo,HC1.HorClaHorTope,HC1.HorClaCar,HC1.HorClaFchPos,HC1.HorClaFchCese,HC1.HorClaObs,HC1.HorClaNumInt,HC1.HorClaParPreCod,HC1.HorClaCompPor,HC1.HorClaLote,HC1.HorClaAudUsu,HC1.HorClaFchLib,
+       99 HorClaCauBajCod,
+       HC1.HorClaAsiCod,HC1.HorClaMod,HC1.HorClaHor,
        1 HorClaBajLog,
        HC1.HorClaCic,HC1.HorClaEmpCod,
        null DesFchProc,
@@ -110,39 +131,30 @@ select null HorClaId,
        null NroLote
 from ihorasclase HC1
 left join ihorasclase HC2
-  on HC1.perdocnum=HC2.perdocnum
- and HC1.desfchcarga<HC2.desfchcarga
- and HC1.horclainscod=HC2.horclainscod
- and HC1.Resultado=HC2.Resultado
- and HC1.HorClaBajLog=HC2.HorClaBajLog
-where HC2.perdocnum is null
+  on HC2.perdocnum=HC1.perdocnum
+ and HC2.desfchcarga=curdate()
+ and HC2.horclainscod=HC1.horclainscod
+ and HC2.DesFchProc is null
+where HC1.HorClaBajLog=0
+  and HC1.perdocnum='$cedula'
   and HC1.Resultado='OK'
-  and HC1.HorClaBajLog=0
-  and (HC1.perdocnum,HC1.horclainscod) in
-  ( -- personas/liceos para arreglar: las que están en SIAP y no están en la bandeja
-    select PerDocNum,InsCod
-    from (
-      select PerDocNum,InsCod,desfchcarga
-      from ihorasclase
-      join siap_ces.v_designaciones using (PerDocNum)
-      where desfchproc is null
-        and ( tipo='DD' or tipo='DI' and AsiCod=151 )
-        and ( DesFchEgr>='2018-03-01' or DesFchEgr='1000-01-01' )
-        and perdocnum='$cedula'
-      group by 1,2,3
-    )X
-    left join (
-      select PerDocNum,horclainscod InsCod,desfchcarga
-      from ihorasclase
-      where desfchproc is null and ( horclafchcese>='2018-03-01' or horclafchcese='1000-01-01' )
-      group by 1,2,3
-    )Y using (PerDocNum,InsCod,desfchcarga)
-    where Y.perdocnum is null and inscod not in ('25.3.0.0.8901','25.3.0.0.8902')
-  )
+  and HC1.DesFchCarga>='2018-03-01'
+  and HC2.perdocnum is null
         ");
+	($DBI::errstr) and $out .= $DBI::errstr.";";
 
-	($DBI::errstr) and $out .= $DBI::errstr."<br>\n";
+
+	# parche para cambiar la materia 98 (AAM) del Corporativo por la 77 de SIAP
+	$dbh->do("
+update ihorasclase
+set HorClaAsiCod=77
+where HorClaAsiCod=98
+  and perdocnum='$cedula'
+  and DesFchProc is null
+  and desfchcarga = curdate()
+	");
+	($DBI::errstr) and $out .= $DBI::errstr.";";
 
 	$dbh->disconnect();
-
+	return $out;
 }
