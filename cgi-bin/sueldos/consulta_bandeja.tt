@@ -100,12 +100,20 @@
 [% IF admin %]
 	      <hr class="w-100">
 
-              <li class="nav-item">
-                <a class="nav-link[% IF opcion=="cargar" %] active[% END %]" href="?opcion=cargar[% IF cedula %]&cedula=[% cedula %][% END %]">
-                  <span class="fas fa-play-circle feather"></span>
-                  Cargar bandeja de DD
-                </a>
-              </li>
+	      <li class="nav-item nav-folder">
+		  <span class="fas fa-share-square feather"></span>
+		  Administración <span class="sr-only">(current)</span>
+
+		  <ul class="nav flex-column ml-3">
+		  <li class="nav-item">
+		    <a class="nav-link[% IF opcion=="cargar" %] active[% END %]" href="?opcion=cargar[% IF cedula %]&cedula=[% cedula %][% END %]">
+		      <span class="fas fa-play-circle feather"></span>
+		      Cargar bandeja de DD
+		    </a>
+		  </li>
+		  </ul>
+	      </li>
+
 [% END %]
 
 	    </ul>
@@ -133,7 +141,7 @@
 
 	      <small id="cedulaHelp" class="form-text text-muted ml-3"></small>
 
-	  [% IF nombre %]<label>[% nombre %]</label>[% END %]
+	  [% IF cedula %]<label>[% IF nombre %][% nombre %][% ELSE %]¿Número de cédula incorrecto?[% END %]</label>[% END %]
 	  </form>
 [% END %]
 
