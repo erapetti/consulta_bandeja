@@ -188,6 +188,7 @@ LEFT JOIN (
 
 WHERE perdocid='".$cedula."'
   AND (FuncAsignadaFchHasta>='2018-03-01' OR FuncAsignadaFchHasta='1000-01-01')
+  AND (FuncAsignadaFchDesde<=FuncAsignadaFchHasta OR FuncAsignadaFchHasta='1000-01-01')
 GROUP BY 1,2,3,4,5,6,7
 ORDER BY 2,4,5,6,3;
 
