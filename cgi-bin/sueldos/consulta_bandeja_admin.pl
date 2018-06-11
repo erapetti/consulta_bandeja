@@ -534,7 +534,8 @@ sub resumen_posesiones($) {
   my $total = 0;
   my %total;
   foreach $_ (@{$rdata->{data}}) {
-	if (($_->[$colhasta] eq "" || $_->[$colhasta] ge $now) && ($_->[$coldesde] eq "" || $_->[$coldesde] le $now)) {
+	if (($_->[$colhasta] eq "" || $_->[$colhasta] ge $now || $_->[$colhasta] eq "1000-01-01") &&
+	    ($_->[$coldesde] eq "" || $_->[$coldesde] le $now || $_->[$coldesde] eq "1000-01-01")) {
 		$total{$_->[$colciclo]} += $_->[$colhoras];
 		$total += $_->[$colhoras];
 	}
