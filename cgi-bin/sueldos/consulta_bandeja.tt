@@ -154,7 +154,7 @@
   [% END %]
 
 	    <div id="datatable" class="mt-5">
-	      <table id="maintable" class="display table table-striped pt-3 mt-3" style="width:100%">
+	      <table id="maintable" class="display table table-striped py-3 my-3" style="width:100%">
 	        <thead></thead>
 	        <tbody></tbody>
 	      </table>

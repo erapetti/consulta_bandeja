@@ -69,6 +69,10 @@
  * DataTable
  */
 
+div#datatable div.dataTables_length, div#datatable div.dataTables_filter, div#datatable div.dataTables_info, div#datatable div.dataTables_paginate {
+  font-size: .8rem;
+}
+
 table#maintable {
   font-size: .8rem;
 }
