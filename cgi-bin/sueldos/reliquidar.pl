@@ -6,6 +6,7 @@ use strict;
 use DBI;
 use CGI qw/:standard/;
 use Fcntl qw/:flock/;
+use portal3 qw/checkFormat/;
 
 sub checkFormat($$) ;
 sub posbandeja($) ;
@@ -27,7 +28,7 @@ if (!$desde || !$hasta) {
 
 chdir '/var/www/bandeja';
 
-my $bandeja = "bj-8.0.2.py";
+my $bandeja = "bj-8.0.6.py";
 
 open(LOCKFH,$bandeja);
 if (! flock(LOCKFH, LOCK_EX|LOCK_NB)) {
@@ -35,7 +36,7 @@ if (! flock(LOCKFH, LOCK_EX|LOCK_NB)) {
 	exit(0);
 }
 
-open(CMD, "/usr/bin/python $bandeja --inicio $desde --fin $hasta --ci $cedula |");
+open(CMD, "/usr/bin/python $bandeja --inicio $desde --fin $hasta ".($cedula ? "--ci $cedula" :"")." |");
 local $/ = undef;
 my $out = <CMD>;
 close(CMD);
@@ -82,18 +83,6 @@ sub dbConnect(;$$$) {
         return $dbh;
 }
 
-# valida el string contra una regexp
-sub checkFormat($$) {
-        my ($str,$fmt) = @_;
-
-        if (defined($str)) {
-                my $aux = $str;
-                $aux =~ /^\s*($fmt)\s*$/ and return $1;
-        }
-
-        return undef;
-}
-
 # Correcciones de los pendientes en la bandeja
 sub posbandeja($) {
 	my ($cedula) = @_;
@@ -103,11 +92,14 @@ sub posbandeja($) {
 
 	# Borro registros posteriores a hoy
 	$dbh->do("
-delete from ihorasclase
-where perdocnum = '$cedula'
-  and DesFchProc is null
-  and desfchcarga = curdate()
-  and (HorClaFchCese < HorClaFchPos or HorClaFchPos > curdate())
+delete ihc
+from ihorasclase ihc
+join (select max(hasta) hasta from periodos) P
+where DesFchProc is null
+  and DesFchCarga = curdate()
+  and (HorClaFchCese < HorClaFchPos or horclafchpos>=P.hasta)
+  and not(HorClaBajLog=1 and HorClaCauBajCod=99)
+".($cedula ? "  and perdocnum = '$cedula'" : "")."
         ");
 	($DBI::errstr) and $out .= $DBI::errstr.";";
 
@@ -136,10 +128,10 @@ left join ihorasclase HC2
  and HC2.horclainscod=HC1.horclainscod
  and HC2.DesFchProc is null
 where HC1.HorClaBajLog=0
-  and HC1.perdocnum='$cedula'
   and HC1.Resultado='OK'
   and HC1.DesFchCarga>='2018-03-01'
   and HC2.perdocnum is null
+".($cedula ? "  and HC1.perdocnum = '$cedula'" : "")."
         ");
 	($DBI::errstr) and $out .= $DBI::errstr.";";
 
@@ -149,9 +141,24 @@ where HC1.HorClaBajLog=0
 update ihorasclase
 set HorClaAsiCod=77
 where HorClaAsiCod=98
-  and perdocnum='$cedula'
   and DesFchProc is null
   and desfchcarga = curdate()
+".($cedula ? "  and perdocnum = '$cedula'" : "")."
+	");
+	($DBI::errstr) and $out .= $DBI::errstr.";";
+
+	$dbh->disconnect();
+	return $out;
+}
+
+sub nuevo_periodo {
+	my $out;
+
+	my $dbh = dbConnect("siap_ces_tray");
+
+	$dbh->do("
+insert into periodos
+values (null,(select * from (select max(hasta) from periodos)X),curdate())
 	");
 	($DBI::errstr) and $out .= $DBI::errstr.";";
 
