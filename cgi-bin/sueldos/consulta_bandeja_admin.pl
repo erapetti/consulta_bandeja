@@ -18,27 +18,29 @@ sub json_response($) ;
 sub data2js($) ;
 sub corporativo_buscar($$) ;
 sub corporativo_certificados($$) ;
-sub resumen ;
+sub resumen($);
 sub bandeja_buscar($$) ;
-sub errores ;
+sub errores($) ;
+sub periodos($) ;
 sub siap_buscar($$) ;
 sub siap_suspensiones($$) ;
 sub siap_procesos ($) ;
 sub coordinacion ($$$) ;
 sub periodo_minmax($) ;
-sub nombre ($$) ;
+sub nombre($$) ;
 sub proxy($) ;
 sub resumen_posesiones($) ;
 sub opcion_corporativo_consulta($$) ;
 sub opcion_corporativo_certificados($$) ;
 sub opcion_resumen_bandeja($$) ;
 sub opcion_consulta_bandeja($$) ;
-sub opcion_errores ($$) ;
-sub opcion_siap_consulta ($$) ;
+sub opcion_errores($$) ;
+sub opcion_periodos($$) ;
+sub opcion_siap_consulta($$) ;
 sub opcion_siap_suspensiones($$) ;
-sub opcion_siap_procesos ($$) ;
-sub opcion_borrar ($$) ;
-sub opcion_reliquidar ($$) ;
+sub opcion_siap_procesos($$) ;
+sub opcion_borrar($$) ;
+sub opcion_reliquidar($$) ;
 
 my ($userid,$sessionid) = getSession(cookie(-name=>'SESION'));
 
@@ -67,6 +69,7 @@ my %dispatcher = (
 	resumen => \&opcion_resumen_bandeja,
 	consulta => \&opcion_consulta_bandeja,
 	errores => \&opcion_errores,
+	periodos => \&opcion_periodos,
 	siap => \&opcion_siap_consulta,
 	suspensiones => \&opcion_siap_suspensiones,
 	procesos => \&opcion_siap_procesos,
@@ -201,7 +204,7 @@ ORDER BY 2,4,5,6,3;
 
 	$sth->finish;
 
-	return {head=>["Cédula","Desde","Hasta","Dependencia","Cargo/Asignatura","Suplencias","Ciclo","Horas"], data=>$rows};
+	return {head=>["Cédula","Desde","Hasta","Dependencia","Cargo/Asignatura","Observaciones","Ciclo","Horas"], data=>$rows};
 }
 
 sub corporativo_certificados($$) {
@@ -234,7 +237,7 @@ ORDER BY 1,2;
 	return {head=>["Cédula","Desde","Hasta","Dependencia","Tipo","Observaciones"], data=>$rows};
 }
 
-sub resumen {
+sub resumen($) {
 	my ($dbh) = @_;
 
 	my $sth = dbGet($dbh, "siap_ces_tray.ihorasclase",
@@ -308,7 +311,7 @@ ORDER BY 2,4,5,6,3;
 	return {head=>["Cédula","Desde","Hasta","Dependencia","Asignatura","Ciclo","Horas","FchCarga","FchProc","Mensaje"], data=>$rows};
 }
 
-sub errores {
+sub errores($) {
 	my ($dbh) = @_;
 
 	my $sth = $dbh->prepare("
@@ -336,6 +339,27 @@ group by 1
 	return {head=>["Cédula","Fecha Carga","Errores"], data=>$rows};
 }
 
+sub periodos($) {
+	my ($dbh) = @_;
+
+	my $sth = $dbh->prepare("
+
+SELECT desde,hasta
+FROM siap_ces_tray.periodos
+ORDER BY id
+
+	");
+	$sth->execute;
+
+	(defined($sth)) or return undef;
+
+	my $rows = $sth->fetchall_arrayref;
+
+	$sth->finish;
+
+	return {head=>["Desde","Hasta"], data=>$rows};
+}
+
 sub siap_buscar($$) {
 	my ($dbh, $cedula) = @_;
 
@@ -346,14 +370,22 @@ SELECT perdocnum,
        DesFchEgr,
        InsDsc,
        ifnull(AsiNom,cargo),
+       group_concat(concat(ConDsc,': ',DesConFchDes,' a ',DesConFchHas)) reservas,
        CicCod,
        sum(horas)
-FROM siap_ces.v_designaciones
+FROM siap_ces.v_designaciones v
 LEFT JOIN siap_ces.asignaturas using (AsiCod)
+LEFT JOIN siap_ces.designacionesconceptos dc
+     ON dc.DesConEmpCod = v.EmpCod
+    AND dc.DesConCarNum = v.CarNum
+    AND dc.DesConCarNumVer = v.CarNumVer
+    AND dc.ConCod in (81150,81151,81154,81155,81156)
+    AND (dc.DesConFchHas >= '2018-01-01' or dc.DesConFchHas='1000-01-01')
+LEFT JOIN siap_ces.conceptos using (ConCod)
 WHERE perdocnum='".$cedula."'
   AND (DesFchEgr='1000-01-01' OR DesFchEgr>='2018-03-01')
-GROUP BY 1,2,3,4,5,6
-ORDER BY 2,4,5,6,3;
+GROUP BY 1,2,3,4,5,7
+ORDER BY 2,4,5,7,3;
 
 	");
 	$sth->execute();
@@ -364,7 +396,7 @@ ORDER BY 2,4,5,6,3;
 
 	$sth->finish;
 
-	return {head=>["Cédula","Desde","Hasta","Dependencia","Cargo/Asignatura","Ciclo","Horas"], data=>$rows};
+	return {head=>["Cédula","Desde","Hasta","Dependencia","Cargo/Asignatura","Observaciones","Ciclo","Horas"], data=>$rows};
 }
 
 sub siap_suspensiones($$) {
@@ -479,7 +511,7 @@ WHERE desde >= concat(year(curdate())+if(month(curdate())>=3,0,-1),'-03-01')
 	return ($row[0], $row[1]);
 }
 
-sub nombre ($$) {
+sub nombre($$) {
 	my ($dbh, $cedula) = @_;
 
 	my $SQL = "
@@ -517,7 +549,8 @@ sub resumen_posesiones($) {
   my ($rdata) = @_;
   my $html;
 
-  my ($colciclo, $colhoras, $coldesde, $colhasta);
+  # Busco en qué columnas vienen los datos que me interesan:
+  my ($colciclo, $colhoras, $coldesde, $colhasta, $colobs);
   for my $i (0..$#{$rdata->{head}}) {
 	if ($rdata->{head}[$i] eq "Ciclo") {
 		$colciclo = $i;
@@ -527,6 +560,8 @@ sub resumen_posesiones($) {
 		$coldesde = $i;
 	} elsif ($rdata->{head}[$i] eq "Hasta") {
 		$colhasta = $i;
+	} elsif ($rdata->{head}[$i] eq "Observaciones") {
+		$colobs = $i;
 	}
   }
 
@@ -534,11 +569,25 @@ sub resumen_posesiones($) {
   my $now = sprintf "%4d-%02d-%02d", $time[5]+1900, $time[4]+1, $time[3];
   my $total = 0;
   my %total;
+  # Recorro las designaciones:
   foreach $_ (@{$rdata->{data}}) {
 	if (($_->[$colhasta] eq "" || $_->[$colhasta] ge $now || $_->[$colhasta] eq "1000-01-01") &&
 	    ($_->[$coldesde] eq "" || $_->[$coldesde] le $now || $_->[$coldesde] eq "1000-01-01")) {
-		$total{$_->[$colciclo]} += $_->[$colhoras];
-		$total += $_->[$colhoras];
+		# Encontré una designación que está en fecha
+		my $obs = $_->[$colobs];
+		my $reserva = 0;
+
+		while(!$reserva && $obs && $obs =~ s/reserva[^\d]*: (\d\d\d\d-\d\d-\d\d) a (\d\d\d\d-\d\d-\d\d)//i) {
+			# Encontré una reserva de cargo que tengo que verificar que está en fecha
+			my $desde = $1;
+			my $hasta = $2;
+
+			$reserva = ($hasta ge $now || $hasta eq "1000-01-01") && ($desde le $now || $desde eq "1000-01-01");
+		}
+		if (!$reserva) {
+			$total{$_->[$colciclo]} += $_->[$colhoras];
+			$total += $_->[$colhoras];
+		}
 	}
   }
   if (defined($total{""})) {
@@ -679,7 +728,7 @@ sub opcion_consulta_bandeja($$) {
 	return 0;
 }
 
-sub opcion_errores ($$) {
+sub opcion_errores($$) {
 	my ($rparam, $rtvars) = @_;
 
 	my $dbh_siap = $rparam->{dbh_siap};
@@ -705,7 +754,20 @@ sub opcion_errores ($$) {
 	return 0;
 }
 
-sub opcion_siap_consulta ($$) {
+sub opcion_periodos($$) {
+	my ($rparam, $rtvars) = @_;
+
+	my $dbh_siap = $rparam->{dbh_siap};
+
+	my $periodos = periodos($dbh_siap);
+
+	$rtvars->{js} = data2js($periodos);
+	$rtvars->{titulo} = "Períodos de liquidación";
+
+	return 0;
+}
+
+sub opcion_siap_consulta($$) {
 	my ($rparam, $rtvars) = @_;
 
 	my $dbh_siap = $rparam->{dbh_siap};
@@ -746,7 +808,7 @@ sub opcion_siap_suspensiones($$) {
 	return 0;
 }
 
-sub opcion_siap_procesos ($$) {
+sub opcion_siap_procesos($$) {
 	my ($rparam, $rtvars) = @_;
 
 	my $dbh_siap = $rparam->{dbh_siap};
@@ -759,7 +821,7 @@ sub opcion_siap_procesos ($$) {
 	return 0;
 }
 
-sub opcion_borrar ($$) {
+sub opcion_borrar($$) {
 	my ($rparam, $rtvars) = @_;
 
 	my $cedula = $rparam->{cedula};
@@ -777,7 +839,7 @@ sub opcion_borrar ($$) {
 	return 1;
 }
 
-sub opcion_reliquidar ($$) {
+sub opcion_reliquidar($$) {
 	my ($rparam, $rtvars) = @_;
 
 	my $dbh_siap = $rparam->{dbh_siap};
