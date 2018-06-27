@@ -26,8 +26,7 @@
 	    <ul class="nav flex-column">
 
 	      <li class="nav-item nav-folder">
-		  <span class="fas fa-share-square feather"></span>
-		  Corporativo <span class="sr-only">(current)</span>
+		  <b>Corporativo <span class="sr-only">(current)</span></b>
 
 		  <ul class="nav flex-column ml-3">
 	          <li class="nav-item">
@@ -46,8 +45,7 @@
 	      </li>
 
 	      <li class="nav-item nav-folder">
-		  <span class="fas fa-share-square feather"></span>
-		  Bandeja de DD <span class="sr-only">(current)</span>
+		  <b>Bandeja de DD <span class="sr-only">(current)</span></b>
 
 		  <ul class="nav flex-column ml-3">
 		  <li class="nav-item">
@@ -68,12 +66,17 @@
 		      Errores
 		    </a>
 		  </li>
+		  <li class="nav-item">
+		    <a class="nav-link[% IF opcion=="periodos" %] active[% END %]" href="?opcion=periodos[% IF cedula %]&cedula=[% cedula %][% END %]">
+		      <span class="far fa-calendar-alt feather"></span>
+		      Períodos
+		    </a>
+		  </li>
 		  </ul>
 	      </li>
 
 	      <li class="nav-item nav-folder">
-		  <span class="fas fa-share-square feather"></span>
-		  SIAP <span class="sr-only">(current)</span>
+		  <b>SIAP <span class="sr-only">(current)</span></b>
 
 		  <ul class="nav flex-column ml-3">
 	          <li class="nav-item">
@@ -101,8 +104,7 @@
 	      <hr class="w-100">
 
 	      <li class="nav-item nav-folder">
-		  <span class="fas fa-share-square feather"></span>
-		  Administración <span class="sr-only">(current)</span>
+		  <b>Administración <span class="sr-only">(current)</span></b>
 
 		  <ul class="nav flex-column ml-3">
 		  <li class="nav-item">
