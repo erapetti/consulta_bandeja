@@ -173,7 +173,7 @@ SELECT perdocid,
        FuncAsignadaFchDesde,
        FuncAsignadaFchHasta,
        DependDesc,
-       if(AsignDesc<>'',AsignDesc,if(DenomCargoDesc='DOCENTE',concat(DenomCargoDesc,':',FuncionDesc),DenomCargoDesc)),
+       if(AsignDesc<>'',if(DenomCargoDesc<>'DOCENTE',concat(DenomCargoDesc,' ',AsignDesc),AsignDesc),if(DenomCargoDesc='DOCENTE',concat(DenomCargoDesc,':',FuncionDesc),DenomCargoDesc)),
        suplencias,
        RelLabCicloPago,
        format(sum(CargaHorariaCantHoras),2)
