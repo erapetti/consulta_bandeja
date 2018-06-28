@@ -36,7 +36,7 @@ if (! flock(LOCKFH, LOCK_EX|LOCK_NB)) {
 	exit(0);
 }
 
-open(CMD, "/usr/bin/python $bandeja --inicio $desde --fin $hasta ".($cedula ? "--ci $cedula" :"")." |");
+open(CMD, "/usr/bin/python $bandeja --inicio $desde --fin $hasta ".($cedula ? "--ci $cedula" :"")." 2>&1 |");
 local $/ = undef;
 my $out = <CMD>;
 close(CMD);
