@@ -26,7 +26,7 @@
 	    <ul class="nav flex-column">
 
 	      <li class="nav-item nav-folder">
-		  <b>Corporativo <span class="sr-only">(current)</span></b>
+		  <b>Corporativo</b>
 
 		  <ul class="nav flex-column ml-3">
 	          <li class="nav-item">
@@ -45,7 +45,7 @@
 	      </li>
 
 	      <li class="nav-item nav-folder">
-		  <b>Bandeja de DD <span class="sr-only">(current)</span></b>
+		  <b>Bandeja de DD</b>
 
 		  <ul class="nav flex-column ml-3">
 		  <li class="nav-item">
@@ -74,9 +74,22 @@
 		  </li>
 		  </ul>
 	      </li>
+ 
+	      <li class="nav-item nav-folder">
+		  <b>Bandeja de multas</b>
+
+		  <ul class="nav flex-column ml-3">
+		  <li class="nav-item">
+		    <a class="nav-link[% IF opcion=="multas" %] active[% END %]" href="?opcion=multas[% IF cedula %]&cedula=[% cedula %][% END %]">
+		      <span class="fas fa-search feather"></span>
+		      Consulta
+		    </a>
+		  </li>
+		  </ul>
+	      </li>
 
 	      <li class="nav-item nav-folder">
-		  <b>SIAP <span class="sr-only">(current)</span></b>
+		  <b>SIAP</b>
 
 		  <ul class="nav flex-column ml-3">
 	          <li class="nav-item">
@@ -104,7 +117,7 @@
 	      <hr class="w-100">
 
 	      <li class="nav-item nav-folder">
-		  <b>Administración <span class="sr-only">(current)</span></b>
+		  <b>Administración</b>
 
 		  <ul class="nav flex-column ml-3">
 		  <li class="nav-item">

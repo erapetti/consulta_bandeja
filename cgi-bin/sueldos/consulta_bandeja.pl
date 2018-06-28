@@ -22,6 +22,7 @@ sub resumen($);
 sub bandeja_buscar($$) ;
 sub errores($) ;
 sub periodos($) ;
+sub multas($$) ;
 sub siap_buscar($$) ;
 sub siap_suspensiones($$) ;
 sub siap_procesos ($) ;
@@ -36,6 +37,7 @@ sub opcion_resumen_bandeja($$) ;
 sub opcion_consulta_bandeja($$) ;
 sub opcion_errores($$) ;
 sub opcion_periodos($$) ;
+sub opcion_multas($$) ;
 sub opcion_siap_consulta($$) ;
 sub opcion_siap_suspensiones($$) ;
 sub opcion_siap_procesos($$) ;
@@ -70,6 +72,7 @@ my %dispatcher = (
 	consulta => \&opcion_consulta_bandeja,
 	errores => \&opcion_errores,
 	periodos => \&opcion_periodos,
+	multas => \&opcion_multas,
 	siap => \&opcion_siap_consulta,
 	suspensiones => \&opcion_siap_suspensiones,
 	procesos => \&opcion_siap_procesos,
@@ -358,6 +361,47 @@ ORDER BY id
 	$sth->finish;
 
 	return {head=>["Desde","Hasta"], data=>$rows};
+}
+
+sub multas($$) {
+	my ($dbh,$cedula) = @_;
+
+	my $SQL= "
+
+SELECT PerDocNum Cédula,
+       MultAnio,
+       MultMes,
+       InsDsc,
+       case RubroCod when '81117' then 'ND' when '81119' then 'PA' when '81131' then 'DI' when '81118' then 'DD' else NULL end tipo,
+       MultCic,
+       concat(if(MultCantDias>0,concat(MultCantDias,' D'),''),if(MultCantHor>0,concat(MultCantHor,' H'),'')) DiasHoras,
+       MultFchCarga,
+       MultFchProc,
+       Mensaje
+FROM (
+  select month(max(MultFchCarga)) mes,
+         year(max(MultFchCarga)) anio
+  from siap_ces_tray.imultas
+) FC
+join siap_ces_tray.imultas M1
+  on month(MultFchCarga)=mes
+ and year(MultFchCarga)=anio
+join siap_ces.institucionales
+  on InsCod=MultInsCod
+WHERE PerDocNum='$cedula'
+  AND (MultCantDias>0 OR MultCantHor>0);
+
+	";
+        my $sth = $dbh->prepare($SQL);
+        $sth->execute();
+
+	(defined($sth) && !$DBI::errstr) or return undef;
+
+	my $rows = $sth->fetchall_arrayref;
+
+	$sth->finish;
+
+	return {head=>["Cédula","Año","Mes","Dependencia","Tipo","Ciclo","Días/Horas","FchCarga","FchProc","Mensaje"], data=>$rows};
 }
 
 sub siap_buscar($$) {
@@ -763,6 +807,26 @@ sub opcion_periodos($$) {
 
 	$rtvars->{js} = data2js($periodos);
 	$rtvars->{titulo} = "Períodos de liquidación";
+
+	return 0;
+}
+
+sub opcion_multas($$) {
+	my ($rparam, $rtvars) = @_;
+
+	my $dbh_siap = $rparam->{dbh_siap};
+	my $cedula = $rparam->{cedula};
+
+	if (defined($cedula)) {
+
+		my $multas = multas($dbh_siap,$cedula);
+
+		$rtvars->{js} = data2js($multas);
+		$rtvars->{subtitulo} = "Datos del último mes en la bandeja";
+	}
+
+	$rtvars->{titulo} = "Bandeja de multas";
+	$rtvars->{buscador_cedulas} = 1;
 
 	return 0;
 }
