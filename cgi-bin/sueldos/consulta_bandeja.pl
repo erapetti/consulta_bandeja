@@ -186,7 +186,7 @@ LEFT JOIN (
        join SUPLENCIAS_CAUSALES using (SuplCausId)
        join RELACIONES_LABORALES RLtit using (RelLabId)
        join RELACIONES_LABORALES RLsupl on RLsupl.SillaId=RLtit.SillaId and RLsupl.RelLabVacantePrioridad=RLtit.RelLabVacantePrioridad+1
-       where SuplCausId in (6,7,10,15)
+       where SuplCausId in (6,7,15,39)
          and (RLsupl.RelLabVacanteFchPubDesde is null or date(RLsupl.RelLabVacanteFchPubDesde)<=date(RLsupl.RelLabCeseFchReal))
 	 and year(RLsupl.RelLabCeseFchReal)>=year(curdate())
        group by 1
@@ -621,7 +621,7 @@ sub resumen_posesiones($) {
 		my $obs = $_->[$colobs];
 		my $reserva = 0;
 
-		while(!$reserva && $obs && $obs =~ s/reserva[^\d]*: (\d\d\d\d-\d\d-\d\d) a (\d\d\d\d-\d\d-\d\d)//i) {
+		while(!$reserva && $obs && $obs =~ s/(?:RESERVA DE CARGO|Licencia sin sueldo)[^\d]*: (\d\d\d\d-\d\d-\d\d) a (\d\d\d\d-\d\d-\d\d)//i) {
 			# Encontré una reserva de cargo que tengo que verificar que está en fecha
 			my $desde = $1;
 			my $hasta = $2;
