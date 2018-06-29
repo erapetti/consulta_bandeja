@@ -621,7 +621,7 @@ sub resumen_posesiones($) {
 		my $obs = $_->[$colobs];
 		my $reserva = 0;
 
-		while(!$reserva && $obs && $obs =~ s/(?:RESERVA DE CARGO|Licencia sin sueldo)[^\d]*: (\d\d\d\d-\d\d-\d\d) a (\d\d\d\d-\d\d-\d\d)//i) {
+		while(!$reserva && $obs && $obs =~ s/(?:CORRIMIENTO|RESERVA DE CARGO|Licencia sin sueldo)[^\d]*: (\d\d\d\d-\d\d-\d\d) a (\d\d\d\d-\d\d-\d\d)//i) {
 			# Encontré una reserva de cargo que tengo que verificar que está en fecha
 			my $desde = $1;
 			my $hasta = $2;
