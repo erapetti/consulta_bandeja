@@ -181,14 +181,20 @@ FROM v_funciones_del_personal v
 
 -- suplencias, reservas de cargo, etc:
 LEFT JOIN (
-       select s.RelLabId,group_concat(distinct concat(SuplCausDesc,': ',ifnull(date(SuplFchAlta),'1000-01-01'),' a ',date(RLsupl.RelLabCeseFchReal)) order by RLsupl.RelLabVacanteFchPubDesde separator '<br>') suplencias
+       select s.RelLabId,
+              group_concat(distinct concat(SuplCausDesc,': ',ifnull(date(SuplFchAlta),'1000-01-01'),' a ',date(ifnull(RLsupl.RelLabCeseFchReal,'1000-01-01')))
+                           order by SuplFchAlta,RLsupl.RelLabVacanteFchPubDesde
+                           separator '<br>') suplencias
        from SUPLENCIAS s
        join SUPLENCIAS_CAUSALES using (SuplCausId)
        join RELACIONES_LABORALES RLtit using (RelLabId)
-       join RELACIONES_LABORALES RLsupl on RLsupl.SillaId=RLtit.SillaId and RLsupl.RelLabVacantePrioridad=RLtit.RelLabVacantePrioridad+1
+       join RELACIONES_LABORALES RLsupl
+              on RLsupl.SillaId=RLtit.SillaId
+             and RLsupl.RelLabVacantePrioridad=RLtit.RelLabVacantePrioridad+1
+             and (RLsupl.RelLabVacanteFchPubDesde is null or date(RLsupl.RelLabVacanteFchPubDesde)<=date(RLsupl.RelLabCeseFchReal))
+	     and (RLsupl.RelLabCeseFchReal is null or year(RLsupl.RelLabCeseFchReal)>=year(curdate()))
+             and (s.SuplRelLabId is null or s.SuplRelLabId=RLsupl.RelLabId)
        where SuplCausId in (6,7,15,39)
-         and (RLsupl.RelLabVacanteFchPubDesde is null or date(RLsupl.RelLabVacanteFchPubDesde)<=date(RLsupl.RelLabCeseFchReal))
-	 and year(RLsupl.RelLabCeseFchReal)>=year(curdate())
        group by 1
 ) S ON S.RelLabId=v.RelLabId
 
@@ -319,7 +325,7 @@ sub errores($) {
 
 	my $sth = $dbh->prepare("
 
-select HC1.perdocnum Cédula,HC1.desfchcarga `Fecha de carga`,count(*) errores
+select HC1.desfchcarga `Fecha de carga`,HC1.perdocnum Cédula,count(*) errores
 from ihorasclase HC1
 left join ihorasclase HC2
   on HC1.perdocnum=HC2.perdocnum 
@@ -328,7 +334,8 @@ where HC2.perdocnum is null
   and not(HC1.HorClaBajLog=1 and HC1.HorClaCauBajCod=99)
   and HC1.desfchcarga >= '2018-03-01'
   and HC1.resultado not in ('OK','')
-group by 1
+group by 1,2
+order by HC1.desfchcarga desc,2
 
 	");
 	$sth->execute;
@@ -339,7 +346,7 @@ group by 1
 
 	$sth->finish;
 
-	return {head=>["Cédula","Fecha Carga","Errores"], data=>$rows};
+	return {head=>["Fecha Carga","Cédula","Errores"], data=>$rows};
 }
 
 sub periodos($) {
@@ -414,18 +421,24 @@ SELECT perdocnum,
        DesFchEgr,
        InsDsc,
        ifnull(AsiNom,cargo),
-       group_concat(concat(ConDsc,': ',DesConFchDes,' a ',DesConFchHas)) reservas,
+       R.reservas,
        CicCod,
        sum(horas)
 FROM siap_ces.v_designaciones v
 LEFT JOIN siap_ces.asignaturas using (AsiCod)
-LEFT JOIN siap_ces.designacionesconceptos dc
-     ON dc.DesConEmpCod = v.EmpCod
-    AND dc.DesConCarNum = v.CarNum
-    AND dc.DesConCarNumVer = v.CarNumVer
-    AND dc.ConCod in (81150,81151,81154,81155,81156)
-    AND (dc.DesConFchHas >= '2018-01-01' or dc.DesConFchHas='1000-01-01')
-LEFT JOIN siap_ces.conceptos using (ConCod)
+LEFT JOIN (
+  SELECT dc.DesConEmpCod,
+         dc.DesConCarNum,
+         dc.DesConCarNumVer,
+         group_concat(concat(ConDsc,': ',DesConFchDes,' a ',DesConFchHas) separator '<br>') reservas
+  FROM siap_ces.designacionesconceptos dc
+  JOIN siap_ces.conceptos using (ConCod)
+  WHERE dc.ConCod in (81150,81151,81154,81155,81156)
+    AND (dc.DesConFchHas='1000-01-01' OR year(dc.DesConFchHas)>=year(curdate()))
+  GROUP BY 1,2,3
+) R ON R.DesConEmpCod = v.EmpCod
+   AND R.DesConCarNum = v.CarNum
+   AND R.DesConCarNumVer = v.CarNumVer
 WHERE perdocnum='".$cedula."'
   AND (DesFchEgr='1000-01-01' OR DesFchEgr>='2018-03-01')
 GROUP BY 1,2,3,4,5,7
@@ -786,13 +799,16 @@ sub opcion_errores($$) {
 		# Agrego enlaces en la primer columna, para acceder a la consulta de esa cédula
 		$rtvars->{js} .= "
 \$('table#maintable').on( 'draw.dt', function () {
-  \$('table#maintable tbody tr td:first-child').addClass('link');
-  \$('table#maintable tbody tr td:first-child').click(function(){
+  \$('table#maintable tbody tr td:nth-child(2)').addClass('link');
+  \$('table#maintable tbody tr td:nth-child(2)').click(function(){
       window.location.href = '?opcion=consulta&cedula='+\$(this).text();
   });
 });
 
 		";
+		$rtvars->{data_table_options} = '
+			"order": [[ 0, "desc" ]]
+		';
 	}
 
 	return 0;
