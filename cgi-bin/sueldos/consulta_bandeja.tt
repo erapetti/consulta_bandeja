@@ -221,7 +221,7 @@
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
-	    <button type="button" class="btn btn-primary" id="modal_submit" data-loading-text="<i class='fas fa-circle-notch fa-spin'></i> [% modal_processing %]" data-cedula="[% cedula %]" data-opcion="[% modal_opcion %]">[% modal_button %]</button>
+	    <button type="button" class="btn btn-primary" id="modal_submit" data-loading-text="[% modal_processing %]" data-cedula="[% cedula %]" data-opcion="[% modal_opcion %]">[% modal_button %]</button>
           </div>
         </div>
       </div>

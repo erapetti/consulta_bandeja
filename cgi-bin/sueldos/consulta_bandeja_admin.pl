@@ -182,19 +182,25 @@ FROM v_funciones_del_personal v
 -- suplencias, reservas de cargo, etc:
 LEFT JOIN (
        select s.RelLabId,
-              group_concat(distinct concat(SuplCausDesc,': ',ifnull(date(SuplFchAlta),'1000-01-01'),' a ',date(ifnull(RLsupl.RelLabCeseFchReal,'1000-01-01')))
-                           order by SuplFchAlta,RLsupl.RelLabVacanteFchPubDesde
-                           separator '<br>') suplencias
+              group_concat(
+                           distinct(
+                             concat(SuplCausDesc,': ',ifnull(date(SuplFchAlta),'1000-01-01'),' a ',date(ifnull(RLsupl.RelLabCeseFchReal,'1000-01-01')))
+                           )
+                           order by RLsupl.RelLabVacanteFchPubDesde
+                           separator '<br>'
+              ) suplencias
        from SUPLENCIAS s
        join SUPLENCIAS_CAUSALES using (SuplCausId)
        join RELACIONES_LABORALES RLtit using (RelLabId)
-       join RELACIONES_LABORALES RLsupl
-              on RLsupl.SillaId=RLtit.SillaId
-             and RLsupl.RelLabVacantePrioridad=RLtit.RelLabVacantePrioridad+1
-             and (RLsupl.RelLabVacanteFchPubDesde is null or date(RLsupl.RelLabVacanteFchPubDesde)<=date(RLsupl.RelLabCeseFchReal))
-	     and (RLsupl.RelLabCeseFchReal is null or year(RLsupl.RelLabCeseFchReal)>=year(curdate()))
-             and (s.SuplRelLabId is null or s.SuplRelLabId=RLsupl.RelLabId)
+       join RELACIONES_LABORALES RLsupl on RLsupl.SillaId=RLtit.SillaId and RLsupl.RelLabVacantePrioridad=RLtit.RelLabVacantePrioridad+1
        where SuplCausId in (6,7,15,39)
+         and (RLsupl.RelLabVacanteFchPubDesde is null
+              or RLsupl.RelLabCeseFchReal is null
+              or date(RLsupl.RelLabVacanteFchPubDesde)<=date(RLsupl.RelLabCeseFchReal)
+         )
+	 and (RLsupl.RelLabCeseFchReal is null
+              or year(RLsupl.RelLabCeseFchReal)>=year(curdate())
+         )
        group by 1
 ) S ON S.RelLabId=v.RelLabId
 
