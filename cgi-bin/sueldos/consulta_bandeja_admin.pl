@@ -395,6 +395,7 @@ FROM (
   select month(max(MultFchCarga)) mes,
          year(max(MultFchCarga)) anio
   from siap_ces_tray.imultas
+  where PerDocNum='$cedula'
 ) FC
 join siap_ces_tray.imultas M1
   on month(MultFchCarga)=mes
@@ -844,7 +845,7 @@ sub opcion_multas($$) {
 		my $multas = multas($dbh_siap,$cedula);
 
 		$rtvars->{js} = data2js($multas);
-		$rtvars->{subtitulo} = "Datos del último mes en la bandeja";
+		$rtvars->{subtitulo} = "Datos del último mes en la bandeja para esta cédula";
 	}
 
 	$rtvars->{titulo} = "Bandeja de multas";
