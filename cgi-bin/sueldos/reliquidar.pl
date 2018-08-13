@@ -28,7 +28,7 @@ if (!$desde || !$hasta) {
 
 chdir '/var/www/bandeja';
 
-my $bandeja = "bj-8.0.7.py";
+my $bandeja = "bj-8.0.8.py";
 
 open(LOCKFH,$bandeja);
 if (! flock(LOCKFH, LOCK_EX|LOCK_NB)) {
