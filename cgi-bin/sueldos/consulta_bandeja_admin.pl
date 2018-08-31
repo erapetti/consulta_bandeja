@@ -284,7 +284,8 @@ SELECT HC3.perdocnum,
        sum(HC3.horclahor) Horas,
        HC3.desfchcarga,
        ifnull(HC3.DesFchProc,'') DesFchProc,
-       concat(if(HC3.HorClaBajLog,'Anulado: ',''),if(HC3.DesFchProc is null and HC3.mensaje='','Pendiente',left(replace(HC3.mensaje,'ERROR: ',''),60))) mensaje
+       concat(if(HC3.HorClaBajLog,'Anulado: ',''),if(HC3.DesFchProc is null and HC3.mensaje='','Pendiente',left(replace(HC3.mensaje,'ERROR: ',''),60))) mensaje,
+       HC3.NroLote
 FROM (select HC1.perdocnum,
              HC1.desfchcarga,
              HC1.DesFchProc,
@@ -311,8 +312,8 @@ JOIN siap_ces.institucionales
 LEFT JOIN siap_ces.asignaturas
   ON AsiCod=HC3.HorClaAsiCod
 WHERE NOT(HC3.HorClaBajLog=1 AND HC3.HorClaCauBajCod=99)
-GROUP BY 1,2,3,4,5,6,8,9,10
-ORDER BY 2,4,5,6,3;
+GROUP BY 1,2,3,4,5,6,8,9,10,11
+ORDER BY 2,4,5,6,3
 
 	");
 	$sth->execute();
@@ -323,7 +324,7 @@ ORDER BY 2,4,5,6,3;
 
 	$sth->finish;
 
-	return {head=>["Cédula","Desde","Hasta","Dependencia","Asignatura","Ciclo","Horas","FchCarga","FchProc","Mensaje"], data=>$rows};
+	return {head=>["Cédula","Desde","Hasta","Dependencia","Asignatura","Ciclo","Horas","FchCarga","FchProc","Mensaje","Lote"], data=>$rows};
 }
 
 sub errores($) {
