@@ -749,8 +749,13 @@ sub opcion_consulta_bandeja($$) {
 		if ($rtvars->{admin} && defined($tvars{nombre}) && $tvars{nombre} ne '') {
 			# busco pendientes para definir si habilito borrar o reliquidar:
 			my $pendientes = 0;
+			my $rowid = 0;
+			foreach my $heading (@{$resultado->{head}}) {
+				last if ($heading eq "Mensaje");
+				$rowid++;
+			}
 			foreach my $row (@{$resultado->{data}}) {
-				$row->[$#{$row}] =~ /Pendiente/ and $pendientes = 1 and last;
+				$row->[$rowid] =~ /Pendiente/ and $pendientes = 1 and last;
 			}
 
 			if ($pendientes) {
