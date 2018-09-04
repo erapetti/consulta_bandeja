@@ -340,7 +340,7 @@ left join ihorasclase HC2
 where HC2.perdocnum is null
   and not(HC1.HorClaBajLog=1 and HC1.HorClaCauBajCod=99)
   and HC1.desfchcarga >= '2018-03-01'
-  and HC1.resultado not in ('OK','')
+  and HC1.resultado not in ('OK','PE')
 group by 1,2
 order by HC1.desfchcarga desc,2
 
