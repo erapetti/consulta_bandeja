@@ -284,7 +284,7 @@ SELECT HC3.perdocnum,
        sum(HC3.horclahor) Horas,
        HC3.desfchcarga,
        ifnull(HC3.DesFchProc,'') DesFchProc,
-       concat(if(HC3.HorClaBajLog,'Anulado: ',''),if(HC3.DesFchProc is null and HC3.mensaje='','Pendiente',left(replace(HC3.mensaje,'ERROR: ',''),60))) mensaje,
+       concat(if(HC3.HorClaBajLog,'Anulado: ',''),if(HC3.DesFchProc is null and HC3.mensaje='','Pendiente',left(replace(replace(replace(HC3.mensaje,char(34),''),char(39),''),'ERROR: ',''),60))) mensaje,
        HC3.NroLote
 FROM (select HC1.perdocnum,
              HC1.desfchcarga,
