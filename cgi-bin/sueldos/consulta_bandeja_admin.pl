@@ -43,6 +43,7 @@ sub opcion_siap_suspensiones($$) ;
 sub opcion_siap_procesos($$) ;
 sub opcion_borrar($$) ;
 sub opcion_reliquidar($$) ;
+sub opcion_cargar($$) ;
 
 my ($userid,$sessionid) = getSession(cookie(-name=>'SESION'));
 
@@ -78,6 +79,7 @@ my %dispatcher = (
 	procesos => \&opcion_siap_procesos,
 	borrar => \&opcion_borrar,
 	reliquidar => \&opcion_reliquidar,
+	cargar => \&opcion_cargar,
 );
 
 my %param = (
@@ -388,7 +390,7 @@ SELECT PerDocNum Cédula,
        InsDsc,
        case RubroCod when '81117' then 'ND' when '81119' then 'PA' when '81131' then 'DI' when '81118' then 'DD' else NULL end tipo,
        MultCic,
-       concat(if(MultCantDias>0,concat(MultCantDias,' D'),''),if(MultCantHor>0,concat(MultCantHor,' H'),'')) DiasHoras,
+       concat(if(MultCantDias<>0,concat(MultCantDias,' D'),''),if(MultCantHor<>0,concat(MultCantHor,' H'),'')) DiasHoras,
        MultFchCarga,
        MultFchProc,
        Mensaje
@@ -404,7 +406,7 @@ join siap_ces_tray.imultas M1
 join siap_ces.institucionales
   on InsCod=MultInsCod
 WHERE PerDocNum='$cedula'
-  AND (MultCantDias>0 OR MultCantHor>0);
+  AND (MultCantDias<>0 OR MultCantHor<>0);
 
 	";
         my $sth = $dbh->prepare($SQL);
@@ -949,6 +951,18 @@ sub opcion_reliquidar($$) {
 	}
 
 	my ($code, $text) = proxy("http://ssueldos01.ces.edu.uy/cgi-bin/sueldos/reliquidar.pl?desde=$desde\&hasta=$hasta\&cedula=$cedula");
+	if ($code == 200) {
+		json_response($text);
+	} else {
+		json_response({error=>"$text",code=>$code});
+	}
+	return 1;
+}
+
+sub opcion_cargar($$) {
+	my ($rparam, $rtvars) = @_;
+
+	my ($code, $text) = proxy("http://ssueldos01.ces.edu.uy/cgi-bin/sueldos/reliquidar.pl?nuevo_periodo=on");
 	if ($code == 200) {
 		json_response($text);
 	} else {
