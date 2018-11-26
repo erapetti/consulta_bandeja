@@ -19,7 +19,7 @@ sub respuesta($;$) ;
 
 chdir '/var/www/bandeja';
 
-my $bandeja = "bj-8.0.9.py";
+my $bandeja = "bj-8.0.11.py";
 
 open(LOCKFH,$bandeja);
 if (! flock(LOCKFH, LOCK_EX|LOCK_NB)) {
@@ -112,7 +112,7 @@ join (select max(hasta) hasta from periodos) P
 where DesFchProc is null
   and DesFchCarga = curdate()
   and (HorClaFchCese < HorClaFchPos or horclafchpos>=P.hasta)
-  and not(HorClaBajLog=1 and HorClaCauBajCod=99)
+--  and not(HorClaBajLog=1 and HorClaCauBajCod=99)
 ".($cedula ? "  and perdocnum = '$cedula'" : "")."
         ");
 	($DBI::errstr) and $out .= $DBI::errstr.";";
