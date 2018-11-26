@@ -121,7 +121,7 @@
 
 		  <ul class="nav flex-column ml-3">
 		  <li class="nav-item">
-		    <a class="nav-link[% IF opcion=="cargar" %] active[% END %]" href="?opcion=cargar[% IF cedula %]&cedula=[% cedula %][% END %]">
+		    <a class="nav-link[% IF opcion=="cargar" %] active[% END %]" href="javascript:cargar()">
 		      <span class="fas fa-play-circle feather"></span>
 		      Cargar bandeja de DD
 		    </a>
@@ -188,15 +188,17 @@
 	    </div>
 	    <div class="my-1 mx-3">
 	      <table id="resumen_posesiones" class="table table-bordered pt-3 mt-3" style="width:100%">
-	        <thead><th>Ciclo 0</th><th>Ciclo 1</th><th>Ciclo 2</th><th>Ciclo 3</th><th>Ciclo 4</th><th>Ciclo 5</th><th>Total</th></thead>
-	        <tbody><td>[% c0 %]</td><td>[% c1 %]</td><td>[% c2 %]</td><td>[% c3 %]</td><td>[% c4 %]</td><td>[% c5 %]</td><td>[% total %]</td></tbody>
+	        <thead><tr><th>Ciclo 0</th><th>Ciclo 1</th><th>Ciclo 2</th><th>Ciclo 3</th><th>Ciclo 4</th><th>Ciclo 5</th><th>Total</th></tr></thead>
+	        <tbody><tr><td>[% c0 %]</td><td>[% c1 %]</td><td>[% c2 %]</td><td>[% c3 %]</td><td>[% c4 %]</td><td>[% c5 %]</td><td>[% total %]</td></tr></tbody>
 	      </table>
 	    </div>
 	  </div>
 [% END %][% resumen_posesiones %]
 
+	  <div id="chart_div" style="width: 900px; height: 500px;"></div>
+
 [% IF btn %]
-	  <button type="button" class="btn [% btn_class %][% IF js %] delayed[% END %]" data-toggle="modal" data-target="#myModal">[% btn %]</button>
+	  <button type="button" class="btn [% btn_class %][% IF js %] delayed[% END %]" onClick="javascript:[% modal_opcion %]('[% cedula %]')">[% btn %]</button>
 [% END %]
 	</main>
       </div>
@@ -207,13 +209,13 @@
       <div class="modal-dialog" role="document">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title" id="myModalLabel">[% modal_title %]</h5>
+            <h5 class="modal-title" id="myModalLabel"></h5>
             <button type="button" class="close" data-dismiss="modal" aria-label="Close">
               <span aria-hidden="true">&times;</span>
             </button>
           </div>
           <div class="modal-body">
-            [% modal_body %]
+            <div id="myModalBody"></div>
 	    <div id="modal_message" class="alert alert-danger mt-3" style="display:none" role="alert"></div>
 	    <div class="progress mt-3" id="progress" style="display:none">
 	      <div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
@@ -221,7 +223,7 @@
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
-	    <button type="button" class="btn btn-primary" id="modal_submit" data-loading-text="[% modal_processing %]" data-cedula="[% cedula %]" data-opcion="[% modal_opcion %]">[% modal_button %]</button>
+	    <button type="button" class="btn btn-primary" id="modal_submit" data-loading-text="" data-cedula="" data-opcion=""></button>
           </div>
         </div>
       </div>
@@ -233,6 +235,7 @@
     <script src="../../sueldos/js/popper.min.js"></script>
     <script src="../../sueldos/js/bootstrap.min.js"></script>
     <script src="../../sueldos/js/datatables.min.js"></script>
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
 
     <script type="text/javascript">
       var head;
@@ -248,9 +251,9 @@
 	  columns: head,
 	  lengthMenu: [ 25, 50, 75, 100 ],
 	  language: {
-		search: "Filtrar por:",
-		info: "Mostrando de _START_ a _END_ de _TOTAL_ filas",
-		infoFiltered: "(filtradas de _MAX_ filas en total)",
+	        search: "Filtrar por:",
+	        info: "Mostrando de _START_ a _END_ de _TOTAL_ filas",
+	        infoFiltered: "(filtradas de _MAX_ filas en total)",
 	        lengthMenu: "Mostrar _MENU_ registros",
 	        paginate: {
 	              previous: "Anterior",
@@ -258,10 +261,35 @@
 	        },
 	  },
 	  [% data_table_options %]
-
 	});
       });
     </script>
+[% IF horas_por_periodo %]
+    <script type="text/javascript">
+      google.charts.load('current', {'packages':['corechart']});
+      google.charts.setOnLoadCallback(drawChart);
+
+      function drawChart() {
+	var data = google.visualization.arrayToDataTable([
+	  ['Período', 'Coordinación', 'Total de horas', 'Reserva'],
+[% FOREACH row IN horas_por_periodo -%]
+	  [%- desde = row.0.split('-') ; hasta = row.1.split('-') -%]
+	  ['[% desde.2 %]/[% desde.1 %] al [% hasta.2%]/[% hasta.1 %]', [% row.4 %], [% row.2 %], [% row.3 %]],
+[% END %]
+	]);
+
+	var options = {
+	  title: 'Cantidad de horas por período',
+	  vAxis: {title: 'horas'},
+	  isStacked: true,
+	};
+
+	var chart = new google.visualization.SteppedAreaChart(document.getElementById('chart_div'));
+
+	chart.draw(data, options);
+      }
+    </script>
+[% END %]
     <script type="text/javascript">
 	$('#modal_submit').on('click', function() {
 	    var $this = $(this);
@@ -308,6 +336,26 @@
 	       });
 	    });
 	});
+    </script>
+    <script type="text/javascript">
+	function modal(modal_title, modal_body, modal_processing, cedula, modal_opcion, modal_button) {
+		$('#myModal #myModalLabel').html(modal_title);
+		$('#myModal #myModalBody').html(modal_body);
+		$('#myModal #modal_submit').attr('data-loading-text', modal_processing);
+		$('#myModal #modal_submit').attr('data-cedula', cedula);
+		$('#myModal #modal_submit').attr('data-opcion', modal_opcion);
+		$('#myModal #modal_submit').html(modal_button);
+		$("#myModal").modal()
+	}
+	function cargar() {
+		modal("Crear período y liquidar","Esta operación va a crear un nuevo período de liquidación hasta el día de hoy y luego hace la liquidación correspondiente","Reliquidando","","cargar","Crear período y liquidar");
+	}
+	function reliquidar(cedula) {
+		modal("Reliquidar", "Esta operación va a generar una nueva liquidación para este docente", "Reliquidando", cedula, "reliquidar", "Reliquidar");
+	}
+	function borrar(cedula) {
+		modal("Borrar pendientes", "Esta operación va a borrar la liquidación pendiente para este docente", "Borrando", cedula, "borrar", "Borrar");
+	}
     </script>
 
   </body>

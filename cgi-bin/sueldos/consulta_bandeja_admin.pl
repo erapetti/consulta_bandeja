@@ -166,6 +166,35 @@ sub data2js($) {
 	return $js;
 }
 
+sub corporativo_horas_por_periodo($$) {
+	my ($dbh, $cedula) = @_;
+	
+	my @time = localtime(time());
+	my $year = $time[5]+1900;
+	if ($time[4]+1 < 3) {
+		# enero y febrero
+		$year--;
+	}
+	my $desde = sprintf "%4d-03-01", $year;
+	my $hasta = sprintf "%4d-02-28", $year+1;
+
+	my $sth = $dbh->prepare("
+
+call sp_horas_por_periodo((select perid from Personas.V_PERSONAS where perdocid='$cedula'),'$desde','$hasta');
+
+	");
+	$sth->execute();
+
+	(defined($sth) && !$DBI::errstr) or return undef;
+
+	my $rows = $sth->fetchall_arrayref;
+
+	$sth->finish;
+
+	return $rows;
+}
+
+
 sub corporativo_buscar($$) {
 	my ($dbh, $cedula) = @_;
 
@@ -194,7 +223,8 @@ LEFT JOIN (
        from SUPLENCIAS s
        join SUPLENCIAS_CAUSALES using (SuplCausId)
        join RELACIONES_LABORALES RLtit using (RelLabId)
-       join RELACIONES_LABORALES RLsupl on RLsupl.SillaId=RLtit.SillaId and RLsupl.RelLabVacantePrioridad=RLtit.RelLabVacantePrioridad+1
+       -- join RELACIONES_LABORALES RLsupl on RLsupl.SillaId=RLtit.SillaId and RLsupl.RelLabVacantePrioridad=RLtit.RelLabVacantePrioridad+1
+       join RELACIONES_LABORALES RLsupl on RLsupl.RelLabId=s.SuplRelLabId
        where SuplCausId in (6,7,15,39)
          and (RLsupl.RelLabVacanteFchPubDesde is null
               or RLsupl.RelLabCeseFchReal is null
@@ -688,6 +718,7 @@ sub opcion_corporativo_consulta($$) {
 
 		$rtvars->{resumen_posesiones} = resumen_posesiones($corp);
 
+		$rtvars->{horas_por_periodo} = corporativo_horas_por_periodo($dbh_personal, $cedula);
 	}
 
 	$rtvars->{titulo} = "Consulta al Sistema Corporativo";
