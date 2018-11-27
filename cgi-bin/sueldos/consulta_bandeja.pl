@@ -180,7 +180,7 @@ sub corporativo_horas_por_periodo($$) {
 
 	my $sth = $dbh->prepare("
 
-call sp_horas_por_periodo((select perid from Personas.V_PERSONAS where perdocid='$cedula'),'$desde','$hasta');
+call sp_horas_por_periodo((select perid from Personas.V_PERSONAS where perdocid='$cedula'),'$desde','$hasta',0,0,0,0);
 
 	");
 	$sth->execute();

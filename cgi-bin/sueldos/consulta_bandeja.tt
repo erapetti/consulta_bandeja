@@ -195,7 +195,9 @@
 	  </div>
 [% END %][% resumen_posesiones %]
 
+[% IF horas_por_periodo %]
 	  <div id="chart_div" style="width: 900px; height: 500px;"></div>
+[% END %]
 
 [% IF btn %]
 	  <button type="button" class="btn [% btn_class %][% IF js %] delayed[% END %]" onClick="javascript:[% modal_opcion %]('[% cedula %]')">[% btn %]</button>
@@ -280,7 +282,8 @@
 
 	var options = {
 	  title: 'Cantidad de horas por período',
-	  vAxis: {title: 'horas'},
+	  vAxis: { title: 'horas' },
+	  hAxis: { textStyle : { fontSize: 12 } },
 	  isStacked: true,
 	};
 
