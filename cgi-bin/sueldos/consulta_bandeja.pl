@@ -231,7 +231,7 @@ LEFT JOIN (
               or date(RLsupl.RelLabVacanteFchPubDesde)<=date(RLsupl.RelLabCeseFchReal)
          )
 	 and (RLsupl.RelLabCeseFchReal is null
-              or year(RLsupl.RelLabCeseFchReal)>=year(curdate())
+              or year(RLsupl.RelLabCeseFchReal) >= (year(curdate()) - if(month(curdate())<3,1,0))
          )
        group by 1
 ) S ON S.RelLabId=v.RelLabId
@@ -368,7 +368,9 @@ select HC1.desfchcarga `Fecha de carga`,HC1.perdocnum Cédula,count(*) errores
 from ihorasclase HC1
 left join ihorasclase HC2
   on HC1.perdocnum=HC2.perdocnum 
- and HC1.desfchcarga<HC2.desfchcarga
+ and (HC1.desfchcarga<HC2.desfchcarga
+      or (HC1.desfchcarga=HC2.desfchcarga and HC2.nrolote is not null and HC1.nrolote<HC2.nrolote)
+     )
 where HC2.perdocnum is null
   and not(HC1.HorClaBajLog=1 and HC1.HorClaCauBajCod=99)
   and HC1.desfchcarga >= '2018-03-01'
