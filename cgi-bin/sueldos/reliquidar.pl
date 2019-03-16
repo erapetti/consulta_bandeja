@@ -143,7 +143,7 @@ left join ihorasclase HC2
  and HC2.DesFchProc is null
 where (HC1.HorClaBajLog=0 or HC1.HorClaBajLog is null)
   and HC1.Resultado='OK'
-  and HC1.DesFchCarga>='2018-03-01'
+  and HC1.DesFchCarga>='2019-03-01'
   and HC2.perdocnum is null
 ".($cedula ? "  and HC1.perdocnum = '$cedula'" : "  and HC1.perdocnum in (select perdocnum from ihorasclase where desfchcarga=curdate() and DesFchProc is null and (HorClaBajLog=0 or HorClaBajLog is null) group by 1)")."
         ");
@@ -167,7 +167,7 @@ where HorClaAsiCod=98
 delete from ihorasclase
 where DesFchProc is null
   and DesFchCarga = curdate()
-  and horclainscod="25.1.0.0.8007";
+  and horclainscod='25.1.0.0.8007';
 	");
 	($DBI::errstr) and $out .= $DBI::errstr.";";
 

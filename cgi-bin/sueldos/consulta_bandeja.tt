@@ -76,6 +76,37 @@
 	      </li>
  
 	      <li class="nav-item nav-folder">
+		  <b>Bandeja de DI</b>
+
+		  <ul class="nav flex-column ml-3">
+		  <li class="nav-item">
+		    <a class="nav-link[% IF opcion=="consultaDI" %] active[% END %]" href="?opcion=consultaDI[% IF cedula %]&cedula=[% cedula %][% END %]">
+		      <span class="fas fa-search feather"></span>
+		      Consulta
+		    </a>
+		  </li>
+		  <li class="nav-item">
+		    <a class="nav-link[% IF opcion=="resumenDI" %] active[% END %]" href="?opcion=resumenDI[% IF cedula %]&cedula=[% cedula %][% END %]">
+		      <span class="fas fa-circle feather"></span>
+		      Pendientes
+		    </a>
+		  </li>
+		  <li class="nav-item">
+		    <a class="nav-link[% IF opcion=="erroresDI" %] active[% END %]" href="?opcion=erroresDI[% IF cedula %]&cedula=[% cedula %][% END %]">
+		      <span class="fas fa-times-circle feather"></span>
+		      Errores
+		    </a>
+		  </li>
+		  <li class="nav-item">
+		    <a class="nav-link[% IF opcion=="periodosDI" %] active[% END %]" href="?opcion=periodosDI[% IF cedula %]&cedula=[% cedula %][% END %]">
+		      <span class="far fa-calendar-alt feather"></span>
+		      Períodos
+		    </a>
+		  </li>
+		  </ul>
+	      </li>
+ 
+	      <li class="nav-item nav-folder">
 		  <b>Bandeja de multas</b>
 
 		  <ul class="nav flex-column ml-3">
@@ -184,7 +215,7 @@
 [% BLOCK block_resumen_posesiones %]
 	  <div class="card mb-3">
 	    <div class="card-header">
-	      Estado actual del docente: cantidad de horas según ciclo de pago
+	      Resumen de la tabla anterior: cantidad de horas según ciclo de pago
 	    </div>
 	    <div class="my-1 mx-3">
 	      <table id="resumen_posesiones" class="table table-bordered pt-3 mt-3" style="width:100%">

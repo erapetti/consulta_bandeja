@@ -73,6 +73,10 @@ my %dispatcher = (
 	consulta => \&opcion_consulta_bandeja,
 	errores => \&opcion_errores,
 	periodos => \&opcion_periodos,
+	resumenDI => \&opcion_resumen_bandeja_di,
+	consultaDI => \&opcion_consulta_bandeja_di,
+	erroresDI => \&opcion_errores_di,
+	periodosDI => \&opcion_periodos_di,
 	multas => \&opcion_multas,
 	siap => \&opcion_siap_consulta,
 	suspensiones => \&opcion_siap_suspensiones,
@@ -237,7 +241,7 @@ LEFT JOIN (
 ) S ON S.RelLabId=v.RelLabId
 
 WHERE perdocid='".$cedula."'
-  AND (FuncAsignadaFchHasta>='2018-03-01' OR FuncAsignadaFchHasta='1000-01-01')
+  AND (FuncAsignadaFchHasta>='2019-03-01' OR FuncAsignadaFchHasta='1000-01-01')
   AND (FuncAsignadaFchDesde<=FuncAsignadaFchHasta OR FuncAsignadaFchHasta='1000-01-01')
 GROUP BY 1,2,3,4,5,6,7
 ORDER BY 2,4,5,6,3;
@@ -269,7 +273,7 @@ SELECT concat(cedula,digito) cedula,
 FROM certificaciones_anep
 WHERE cedula=left('$cedula',length('$cedula')-1)
   AND digito=right('$cedula',1)
-  AND CertFchIni>=$desde
+  AND (CertFchIni>=$desde OR CertFchFin>=$desde)
 ORDER BY 1,2;
 
 	");
@@ -289,7 +293,7 @@ sub resumen($) {
 
 	my $sth = dbGet($dbh, "siap_ces_tray.ihorasclase",
 			["DesFchCarga","count(distinct perdocnum) Personas","count(*) Registros"],
-			"HorClaEmpCod=1 and DesFchProc is null and desfchcarga is not null",
+			"HorClaEmpCod=1 and DesFchProc is null and DesFchCarga is not null",
 			"group by 1 order by 1"
 	               );
 
@@ -314,36 +318,37 @@ SELECT HC3.perdocnum,
        AsiNom Asign,
        HC3.HorClaCic Ciclo,
        sum(HC3.horclahor) Horas,
-       HC3.desfchcarga,
+       HC3.DesFchCarga,
        ifnull(HC3.DesFchProc,'') DesFchProc,
        concat(if(HC3.HorClaBajLog,'Anulado: ',''),if(HC3.DesFchProc is null and HC3.mensaje='','Pendiente',left(replace(replace(replace(HC3.mensaje,char(34),''),char(39),''),'ERROR: ',''),60))) mensaje,
        HC3.NroLote
 FROM (select HC1.perdocnum,
-             HC1.desfchcarga,
+             HC1.DesFchCarga,
              HC1.DesFchProc,
              HC1.nrolote
       from ihorasclase HC1
       left join ihorasclase HC2
              on HC2.perdocnum=HC1.perdocnum
-            and (HC1.desfchcarga<HC2.desfchcarga
+            and (HC1.DesFchCarga<HC2.DesFchCarga
                  or
-                 HC1.desfchcarga=HC2.desfchcarga and isnull(HC2.DesFchProc) and (HC1.DesFchProc is not null)
+                 HC1.DesFchCarga=HC2.DesFchCarga and isnull(HC2.DesFchProc) and (HC1.DesFchProc is not null)
                 )
       where HC1.perdocnum='".$cedula."'
-        and HC1.desfchcarga is not null
+        and HC1.DesFchCarga is not null
         and HC2.perdocnum is null
       limit 1) ULT
 JOIN ihorasclase HC3
   ON HC3.perdocnum=ULT.perdocnum
  AND ((ULT.DesFchProc IS NOT NULL AND HC3.DesFchProc=ULT.DesFchProc AND (HC3.nrolote IS NULL OR HC3.nrolote=ULT.nrolote))
       OR
-      (ULT.DesFchProc IS NULL AND HC3.DesFchProc IS NULL AND HC3.desfchcarga=ULT.desfchcarga)
+      (ULT.DesFchProc IS NULL AND HC3.DesFchProc IS NULL AND HC3.DesFchCarga=ULT.DesFchCarga)
      )
 JOIN siap_ces.institucionales
   ON HorClaInsCod=InsCod
 LEFT JOIN siap_ces.asignaturas
   ON AsiCod=HC3.HorClaAsiCod
 WHERE NOT(HC3.HorClaBajLog=1 AND HC3.HorClaCauBajCod=99)
+  AND HC3.DesFchCarga>='2019-03-01'
 GROUP BY 1,2,3,4,5,6,8,9,10,11
 ORDER BY 2,4,5,6,3
 
@@ -364,19 +369,19 @@ sub errores($) {
 
 	my $sth = $dbh->prepare("
 
-select HC1.desfchcarga `Fecha de carga`,HC1.perdocnum Cédula,count(*) errores
+select HC1.DesFchCarga `Fecha de carga`,HC1.perdocnum Cédula,count(*) errores
 from ihorasclase HC1
 left join ihorasclase HC2
   on HC1.perdocnum=HC2.perdocnum 
- and (HC1.desfchcarga<HC2.desfchcarga
-      or (HC1.desfchcarga=HC2.desfchcarga and HC2.nrolote is not null and HC1.nrolote<HC2.nrolote)
+ and (HC1.DesFchCarga<HC2.DesFchCarga
+      or (HC1.DesFchCarga=HC2.DesFchCarga and HC2.nrolote is not null and HC1.nrolote<HC2.nrolote)
      )
 where HC2.perdocnum is null
   and not(HC1.HorClaBajLog=1 and HC1.HorClaCauBajCod=99)
-  and HC1.desfchcarga >= '2018-03-01'
+  and HC1.DesFchCarga >= '2019-03-01'
   and HC1.resultado not in ('OK','PE')
 group by 1,2
-order by HC1.desfchcarga desc,2
+order by HC1.DesFchCarga desc,2
 
 	");
 	$sth->execute;
@@ -397,6 +402,136 @@ sub periodos($) {
 
 SELECT desde,hasta
 FROM siap_ces_tray.periodos
+WHERE desde>='2019-03-01'
+   OR hasta>='2019-03-01'
+ORDER BY id
+
+	");
+	$sth->execute;
+
+	(defined($sth)) or return undef;
+
+	my $rows = $sth->fetchall_arrayref;
+
+	$sth->finish;
+
+	return {head=>["Desde","Hasta"], data=>$rows};
+}
+
+sub resumen_di($) {
+	my ($dbh) = @_;
+
+	my $sth = dbGet($dbh, "siap_ces_tray.idesignaciones",
+			["DesFchCarga","count(distinct perdocnum) Personas","count(*) Registros"],
+			"EmpCod=1 and DesFchProc is null and DesFchCarga is not null",
+			"group by 1 order by 1"
+	               );
+
+	(defined($sth)) or return undef;
+
+	my $rows = $sth->fetchall_arrayref;
+
+	$sth->finish;
+
+	return {head=>["Fecha Carga","Personas","Registros"], data=>$rows};
+}
+
+sub bandeja_buscar_di($$) {
+	my ($dbh, $cedula) = @_;
+
+	my $sth = $dbh->prepare("
+
+SELECT HC3.perdocnum,
+       HC3.DesFchIng FchPos,
+       HC3.DesFchEgr FchCese,
+       InsDsc Dependencia,
+       CarDsc Cargo,
+       0 Ciclo,
+       sum(HC3.CarRegHor) Horas,
+       HC3.DesFchCarga,
+       ifnull(HC3.DesFchProc,'') DesFchProc,
+       concat(if(HC3.DesFchProc is null and HC3.mensaje='','Pendiente',left(replace(replace(replace(HC3.mensaje,char(34),''),char(39),''),'ERROR: ',''),60))) mensaje,
+       HC3.NroLote
+FROM (select HC1.perdocnum,
+             HC1.DesFchCarga,
+             HC1.DesFchProc,
+             HC1.nrolote
+      from idesignaciones HC1
+      left join idesignaciones HC2
+             on HC2.perdocnum=HC1.perdocnum
+            and (HC1.DesFchCarga<HC2.DesFchCarga
+                 or
+                 HC1.DesFchCarga=HC2.DesFchCarga and isnull(HC2.DesFchProc) and (HC1.DesFchProc is not null)
+                )
+      where HC1.perdocnum='".$cedula."'
+        and HC1.DesFchCarga is not null
+        and HC2.perdocnum is null
+      limit 1) ULT
+JOIN idesignaciones HC3
+  ON HC3.perdocnum=ULT.perdocnum
+ AND ((ULT.DesFchProc IS NOT NULL AND HC3.DesFchProc=ULT.DesFchProc AND (HC3.nrolote IS NULL OR HC3.nrolote=ULT.nrolote))
+      OR
+      (ULT.DesFchProc IS NULL AND HC3.DesFchProc IS NULL AND HC3.DesFchCarga=ULT.DesFchCarga)
+     )
+JOIN siap_ces.institucionales
+  ON DesInsCod=InsCod
+LEFT JOIN siap_ces.cargos
+  USING (CarCod)
+WHERE HC3.DesFchCarga>='2019-03-01'
+GROUP BY 1,2,3,4,5,6,8,9,10,11
+ORDER BY 2,4,5,6,3
+
+	");
+	$sth->execute();
+
+	(defined($sth) && !$DBI::errstr) or return undef;
+
+	my $rows = $sth->fetchall_arrayref;
+
+	$sth->finish;
+
+	return {head=>["Cédula","Desde","Hasta","Dependencia","Cargo","Ciclo","Horas","FchCarga","FchProc","Mensaje","Lote"], data=>$rows};
+}
+
+sub errores_di($) {
+	my ($dbh) = @_;
+
+	my $sth = $dbh->prepare("
+
+select HC1.DesFchCarga `Fecha de carga`,HC1.perdocnum Cédula,count(*) errores
+from idesignaciones HC1
+left join idesignaciones HC2
+  on HC1.perdocnum=HC2.perdocnum 
+ and (HC1.DesFchCarga<HC2.DesFchCarga
+      or (HC1.DesFchCarga=HC2.DesFchCarga and HC2.nrolote is not null and HC1.nrolote<HC2.nrolote)
+     )
+where HC2.perdocnum is null
+  and HC1.DesFchCarga >= '2019-03-01'
+  and HC1.resultado not in ('OK','PE')
+group by 1,2
+order by HC1.DesFchCarga desc,2
+
+	");
+	$sth->execute;
+
+	(defined($sth)) or return undef;
+
+	my $rows = $sth->fetchall_arrayref;
+
+	$sth->finish;
+
+	return {head=>["Fecha Carga","Cédula","Errores"], data=>$rows};
+}
+
+sub periodos_di($) {
+	my ($dbh) = @_;
+
+	my $sth = $dbh->prepare("
+
+SELECT desde,hasta
+FROM siap_ces_tray.periodos_di
+WHERE desde>='2019-03-01'
+   OR hasta>='2019-03-01'
 ORDER BY id
 
 	");
@@ -482,7 +617,7 @@ LEFT JOIN (
    AND R.DesConCarNum = v.CarNum
    AND R.DesConCarNumVer = v.CarNumVer
 WHERE perdocnum='".$cedula."'
-  AND (DesFchEgr='1000-01-01' OR DesFchEgr>='2018-03-01')
+  AND (DesFchEgr='1000-01-01' OR DesFchEgr>='2019-03-01')
 GROUP BY 1,2,3,4,5,7
 ORDER BY 2,4,5,7,3;
 
@@ -554,6 +689,7 @@ sub coordinacion ($$$) {
 SELECT 0 DependId,CicloDePago,HrsCoordinacionFechaAlta,date_add(HrsCoordinacionFechaAlta, interval 1 day) manana,format(sum(HrsCoordConSigno),2)
 FROM HORAS_COORDINACION join Personas.PERSONASDOCUMENTOS on coordperid=perid and paiscod='UY' and doccod='CI'
 WHERE perdocid='".$cedula."'
+  AND HrsCoordinacionFechaAlta>='2019-03-01'
 GROUP BY 1,2,3,4
 ORDER BY 1,2,3,4
 ";
@@ -756,7 +892,7 @@ sub opcion_resumen_bandeja($$) {
 	my $resumen = resumen($dbh_siap);
 
 	$rtvars->{js} = data2js($resumen);
-	$rtvars->{titulo} = "Datos pendientes en la bandeja";
+	$rtvars->{titulo} = "Datos pendientes en la bandeja DD";
 
 	return 0;
 }
@@ -868,6 +1004,127 @@ sub opcion_periodos($$) {
 	my $dbh_siap = $rparam->{dbh_siap};
 
 	my $periodos = periodos($dbh_siap);
+
+	$rtvars->{js} = data2js($periodos);
+	$rtvars->{titulo} = "Períodos de liquidación";
+
+	return 0;
+}
+
+sub opcion_resumen_bandeja_di($$) {
+	my ($rparam, $rtvars) = @_;
+
+	my $dbh_siap = $rparam->{dbh_siap};
+
+	my $resumen = resumen_di($dbh_siap);
+
+	$rtvars->{js} = data2js($resumen);
+	$rtvars->{titulo} = "Datos pendientes en la bandeja DI";
+
+	return 0;
+}
+
+sub opcion_consulta_bandeja_di($$) {
+	my ($rparam, $rtvars) = @_;
+
+	my $cedula = $rparam->{cedula};
+	my $dbh_siap = $rparam->{dbh_siap};
+
+	if (defined($cedula)) {
+		my $resultado = bandeja_buscar_di($dbh_siap, $cedula);
+
+		(defined($resultado)) || error($DBI::errstr,200);
+
+		if ($#{$resultado->{data}} >= 0) {
+
+			$rtvars->{js} = data2js($resultado);
+			$rtvars->{subtitulo} = "Últimos datos en la bandeja:";
+
+			# esto va para afuera del if:
+			$rtvars->{resumen_posesiones} = resumen_posesiones($resultado);
+		}
+
+		if ($rtvars->{admin} && defined($tvars{nombre}) && $tvars{nombre} ne '') {
+			# busco pendientes para definir si habilito borrar o reliquidar:
+			my $pendientes = 0;
+			my $rowid = 0;
+			foreach my $heading (@{$resultado->{head}}) {
+				last if ($heading eq "Mensaje");
+				$rowid++;
+			}
+			foreach my $row (@{$resultado->{data}}) {
+				$row->[$rowid] =~ /Pendiente/ and $pendientes = 1 and last;
+			}
+
+			if ($pendientes) {
+				$rtvars->{btn} = 'Borrar pendientes';
+				$rtvars->{btn_class} = 'btn-danger';
+				$rtvars->{modal_title} = 'Borrar pendientes';
+				$rtvars->{modal_body} = 'Esta operación va a borrar la liquidación pendiente para este docente';
+				$rtvars->{modal_processing} = 'Borrando';
+				$rtvars->{modal_button} = 'Borrar';
+				$rtvars->{modal_opcion} = 'borrar';
+			} else {
+				$rtvars->{btn} = 'Reliquidar';
+				$rtvars->{btn_class} = 'btn-primary';
+				$rtvars->{modal_title} = 'Reliquidar';
+				$rtvars->{modal_body} = 'Esta operación va a generar una nueva liquidación para este docente';
+				$rtvars->{modal_processing} = 'Reliquidando';
+				$rtvars->{modal_button} = 'Reliquidar';
+				$rtvars->{modal_opcion} = 'reliquidar';
+			}
+
+		}
+	}
+
+	$rtvars->{titulo} = "Consulta a la bandeja de docencia indirecta";
+	$rtvars->{buscador_cedulas} = 1;
+
+	# muestro los botones de borrar o reliquidar
+	$rtvars->{data_table_options} = '
+	  drawCallback: function(settings) {
+		$(".delayed").show();
+	  },
+	';
+
+	return 0;
+}
+
+sub opcion_errores_di($$) {
+	my ($rparam, $rtvars) = @_;
+
+	my $dbh_siap = $rparam->{dbh_siap};
+
+	my $errores = errores_di($dbh_siap);
+
+	$rtvars->{js} = data2js($errores);
+	$rtvars->{titulo} = "Personas con último pasaje en error";
+
+	if ($#{$errores->{data}} > -1) {
+		# Agrego enlaces en la primer columna, para acceder a la consulta de esa cédula
+		$rtvars->{js} .= "
+\$('table#maintable').on( 'draw.dt', function () {
+  \$('table#maintable tbody tr td:nth-child(2)').addClass('link');
+  \$('table#maintable tbody tr td:nth-child(2)').click(function(){
+      window.location.href = '?opcion=consultaDI&cedula='+\$(this).text();
+  });
+});
+
+		";
+		$rtvars->{data_table_options} = '
+			"order": [[ 0, "desc" ]]
+		';
+	}
+
+	return 0;
+}
+
+sub opcion_periodos_di($$) {
+	my ($rparam, $rtvars) = @_;
+
+	my $dbh_siap = $rparam->{dbh_siap};
+
+	my $periodos = periodos_di($dbh_siap);
 
 	$rtvars->{js} = data2js($periodos);
 	$rtvars->{titulo} = "Períodos de liquidación";
