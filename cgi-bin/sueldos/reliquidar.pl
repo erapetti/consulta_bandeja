@@ -7,55 +7,77 @@ use DBI;
 use CGI qw/:standard/;
 use Fcntl qw/:flock/;
 use portal3 qw/checkFormat/;
+use periodos;
 
 sub dbConnect(;$$$) ;
 sub posbandeja($$) ;
-sub nuevo_periodo($) ;
-sub periodo_minmax($) ;
-sub ultimo_periodo($) ;
-sub nuevo_periodo_dias($) ;
 sub respuesta($;$) ;
 
 
 chdir '/var/www/bandeja';
 
-my $bandeja = "bj-8.0.13.py";
+my $script_bandeja_dd = "bj-8.0.13.py";
+my $script_bandeja_di = "reliquidar_di.sh";
 
-open(LOCKFH,$bandeja);
+print header(-charset=>'utf-8',-type=>'application/json');
+
+open(LOCKFH,$script_bandeja_dd);
 if (! flock(LOCKFH, LOCK_EX|LOCK_NB)) {
 	respuesta("Ya hay un proceso de reliquidación activo. Reintente luego");
 	exit(0);
 }
-
-print header(-charset=>'utf-8',-type=>'application/json');
+$SIG{INT} = sub { flock(LOCKFH, LOCK_UN); }; # libero el lock al salir
 
 my $nuevo_periodo = checkFormat(param('nuevo_periodo'),'on');
 my $cedula = checkFormat(param('cedula'),'\d\d\d\d\d\d\d\d');
+my $bandeja = checkFormat(param('bandeja'),'(dd|di)');
+
+if (!$bandeja) {
+	respuesta("No se recibió el parámetro 'bandeja'");
+	exit(0);
+}
 
 my $dbh_tray = dbConnect("siap_ces_tray");
 
+my $periodos = periodos->new($bandeja, $dbh_tray);
+
 if ($nuevo_periodo) {
-	my $dias = nuevo_periodo_dias($dbh_tray);
-	if (!$dias or $dias<5) {
-		respuesta("No se puede crear un nuevo período porque el período anterior terminó hace menos de 5 días");
-		exit(0);
-	}
-	my $out = nuevo_periodo($dbh_tray);
-	if ($out) {
-		flock(LOCKFH, LOCK_UN);
-		respuesta("No se pudo crear un período nuevo", $out);
-		exit(0);
+	if ($bandeja eq "dd") {
+		my $dias;
+		my ($desde,$hasta,$dias) = $periodos->ultimo();
+		if (!$dias or $dias<5) {
+			respuesta("No se puede crear un nuevo período porque el período anterior terminó hace menos de 5 días");
+			exit(0);
+		}
+		my $out = $periodos->agregar_hasta_ayer();
+		if ($out) {
+			respuesta("No se pudo crear un período nuevo", $out);
+			exit(0);
+		}
+	} else {
+
+		my $out = $periodos->agregar_hasta_minutos(5);
+		if ($out) {
+			respuesta("No se pudo crear un período nuevo", $out);
+			exit(0);
+		}
 	}
 }
 
-
-my ($desde,$hasta) = ($nuevo_periodo ? ultimo_periodo($dbh_tray) : periodo_minmax($dbh_tray) );
+my ($desde,$hasta) = $bandeja eq "dd" ? $periodos->minmax() : $periodos->ultimo();
 
 #$desde='2018-03-01';
 #$hasta='2018-05-11';
 #$cedula='38152988';
 
-open(CMD, "/usr/bin/python $bandeja --inicio $desde --fin $hasta ".($cedula ? "--ci $cedula" :"")." 2>&1 |");
+if ($bandeja eq "dd") {
+	$desde =~ s/ .*//; # saco la hora
+	$hasta =~ s/ .*//; # saco la hora
+	open(CMD, "/usr/bin/python $script_bandeja_dd --inicio '$desde' --fin '$hasta' ".($cedula ? "--ci '$cedula'" :"")." 2>&1 |");
+
+} elsif ($bandeja eq "di") {
+	open(CMD, "/bin/bash $script_bandeja_di --inicio '$desde' --fin '$hasta' 2>&1 |");
+}
 local $/ = undef;
 my $out = <CMD>;
 close(CMD);
@@ -65,14 +87,16 @@ if ($? ne 0) {
 	exit(0);
 }
 
-my $err = posbandeja($dbh_tray,$cedula);
-if ($err) {
-	respuesta("El proceso de posbandeja terminó con error: ".$?, $out);
-	exit(0);
+if ($bandeja eq "dd") {
+	my $err = posbandeja($dbh_tray,$cedula);
+	if ($err) {
+		respuesta("El proceso de posbandeja terminó con error: ".$?, $out);
+		exit(0);
+	}
+
 }
 
 respuesta("", $out);
-flock(LOCKFH, LOCK_UN);
 exit(0);
 
 
@@ -108,7 +132,7 @@ sub posbandeja($$) {
 	$dbh->do("
 delete ihc
 from ihorasclase ihc
-join (select max(hasta) hasta from periodos) P
+join (select max(hasta) hasta from periodos where bandeja='dd') P
 where DesFchProc is null
   and DesFchCarga = curdate()
   and (HorClaFchCese < HorClaFchPos or horclafchpos>=P.hasta)
@@ -185,89 +209,6 @@ where HorClaAsiCod=90
 
 	$dbh->disconnect();
 	return $out;
-}
-
-sub nuevo_periodo ($) {
-	my ($dbh) = @_;
-	my $out;
-
-	$dbh->do("
-insert into periodos
-values (null,(select * from (select max(hasta) from periodos)X),curdate())
-	");
-	($DBI::errstr) and $out .= $DBI::errstr.";";
-
-	$dbh->disconnect();
-	return $out;
-}
-
-sub periodo_minmax($) {
-	my ($dbh) = @_;
-
-	my $SQL = "
-
-SELECT min(desde),max(hasta)
-FROM periodos
-WHERE desde >= concat(year(curdate())+if(month(curdate())>=3,0,-1),'-03-01')
-  AND hasta <  concat(year(curdate())+if(month(curdate())>=3,1,0),'-03-01')
-
-";
-
-	my $sth = $dbh->prepare($SQL);
-	$sth->execute();
-
-	(defined($sth) && !$DBI::errstr) or return undef;
-
-	my @row = $sth->fetchrow_array;
-	$sth->finish;
-
-	return ($row[0], $row[1]);
-}
-
-sub ultimo_periodo($) {
-	my ($dbh) = @_;
-
-	my $SQL = "
-
-SELECT p1.desde,p1.hasta
-FROM periodos p1
-LEFT JOIN periodos p2
-on p1.id < p2.id
-WHERE p2.id is null
-
-";
-
-	my $sth = $dbh->prepare($SQL);
-	$sth->execute();
-
-	(defined($sth) && !$DBI::errstr) or return undef;
-
-	my @row = $sth->fetchrow_array;
-	$sth->finish;
-
-	return ($row[0], $row[1]);
-}
-
-sub nuevo_periodo_dias($) {
-	my ($dbh) = @_;
-
-	my $SQL = "
-
-SELECT DATEDIFF(curdate(),(
-    select max(hasta) from periodos
-));
-
-";
-
-	my $sth = $dbh->prepare($SQL);
-	$sth->execute();
-
-	(defined($sth) && !$DBI::errstr) or return undef;
-
-	my @row = $sth->fetchrow_array;
-	$sth->finish;
-
-	return $row[0];
 }
 
 sub respuesta($;$) {

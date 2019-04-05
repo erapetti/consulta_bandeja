@@ -16,9 +16,10 @@ sub checkFormat($$) ;
 
 print header(-charset=>'utf-8',-type=>'application/json');
 
+my $bandeja = checkFormat(param('bandeja'),'(dd|di)');
 my $cedula = checkFormat(param('cedula'),'\d\d\d\d\d\d\d\d');
 
-if (!$cedula) {
+if (!$bandeja || !$cedula) {
         print '{"error":"parámetros incorrectos para borrar"}';
         exit(0);
 }
@@ -30,7 +31,11 @@ if ($DBI::errstr) {
 	exit(0);
 }
 
-$dbh->do("delete from ihorasclase where perdocnum=$cedula and desfchproc is null");
+if ($bandeja eq "dd") {
+	$dbh->do("delete from ihorasclase where perdocnum=$cedula and desfchproc is null");
+} else {
+	$dbh->do("delete from idesignaciones where perdocnum=$cedula and desfchproc is null");
+}
 
 print '{"error":"'.$DBI::errstr.'"}';
 exit(0);

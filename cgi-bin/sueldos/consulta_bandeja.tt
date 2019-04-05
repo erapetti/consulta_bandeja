@@ -49,25 +49,25 @@
 
 		  <ul class="nav flex-column ml-3">
 		  <li class="nav-item">
-		    <a class="nav-link[% IF opcion=="consulta" %] active[% END %]" href="?opcion=consulta[% IF cedula %]&cedula=[% cedula %][% END %]">
+		    <a class="nav-link[% IF opcion=="consultaDD" %] active[% END %]" href="?opcion=consultaDD[% IF cedula %]&cedula=[% cedula %][% END %]">
 		      <span class="fas fa-search feather"></span>
 		      Consulta
 		    </a>
 		  </li>
 		  <li class="nav-item">
-		    <a class="nav-link[% IF opcion=="resumen" %] active[% END %]" href="?opcion=resumen[% IF cedula %]&cedula=[% cedula %][% END %]">
+		    <a class="nav-link[% IF opcion=="resumenDD" %] active[% END %]" href="?opcion=resumenDD[% IF cedula %]&cedula=[% cedula %][% END %]">
 		      <span class="fas fa-circle feather"></span>
 		      Pendientes
 		    </a>
 		  </li>
 		  <li class="nav-item">
-		    <a class="nav-link[% IF opcion=="errores" %] active[% END %]" href="?opcion=errores[% IF cedula %]&cedula=[% cedula %][% END %]">
+		    <a class="nav-link[% IF opcion=="erroresDD" %] active[% END %]" href="?opcion=erroresDD[% IF cedula %]&cedula=[% cedula %][% END %]">
 		      <span class="fas fa-times-circle feather"></span>
 		      Errores
 		    </a>
 		  </li>
 		  <li class="nav-item">
-		    <a class="nav-link[% IF opcion=="periodos" %] active[% END %]" href="?opcion=periodos[% IF cedula %]&cedula=[% cedula %][% END %]">
+		    <a class="nav-link[% IF opcion=="periodosDD" %] active[% END %]" href="?opcion=periodosDD[% IF cedula %]&cedula=[% cedula %][% END %]">
 		      <span class="far fa-calendar-alt feather"></span>
 		      Períodos
 		    </a>
@@ -152,9 +152,15 @@
 
 		  <ul class="nav flex-column ml-3">
 		  <li class="nav-item">
-		    <a class="nav-link[% IF opcion=="cargar" %] active[% END %]" href="javascript:cargar()">
+		    <a class="nav-link[% IF opcion=="cargar" %] active[% END %]" href="javascript:cargar('dd')">
 		      <span class="fas fa-play-circle feather"></span>
 		      Cargar bandeja de DD
+		    </a>
+		  </li>
+		  <li class="nav-item">
+		    <a class="nav-link[% IF opcion=="cargar" %] active[% END %]" href="javascript:cargar('di')">
+		      <span class="fas fa-play-circle feather"></span>
+		      Cargar bandeja de DI
 		    </a>
 		  </li>
 		  </ul>
@@ -193,11 +199,11 @@
 
 [% IF js %]
 	  <div class="card mb-3">
-  [% IF subtitulo %]
+    [% IF subtitulo %]
 	    <div class="card-header">
 	      [% subtitulo %]
 	    </div>
-  [% END %]
+    [% END %]
 
 	    <div id="datatable" class="mt-5">
 	      <table id="maintable" class="display table table-striped py-3 my-3" style="width:100%">
@@ -206,10 +212,8 @@
 	      </table>
 	    </div>
 	  </div>
-[% ELSE %]
-  [% IF cedula %]
+[% ELSIF hay_resultado %]
 	  <p>No se encontraron registros</p>
-  [% END %]
 [% END %]
 
 [% BLOCK block_resumen_posesiones %]
@@ -226,12 +230,14 @@
 	  </div>
 [% END %][% resumen_posesiones %]
 
-[% IF horas_por_periodo %]
+[% IF horas_por_periodo and ! horas_por_periodo.match('ERROR')  %]
 	  <div id="chart_div" style="width: 900px; height: 500px;"></div>
+[% ELSE %]
+	  <p>[% horas_por_periodo %]</p>
 [% END %]
 
 [% IF btn %]
-	  <button type="button" class="btn [% btn_class %][% IF js %] delayed[% END %]" onClick="javascript:[% modal_opcion %]('[% cedula %]')">[% btn %]</button>
+	  <button type="button" class="btn [% btn_class %][% IF js %] delayed[% END %]" onClick="javascript:[% modal_opcion %]('[% bandeja %]','[% cedula %]')">[% btn %]</button>
 [% END %]
 	</main>
       </div>
@@ -250,6 +256,7 @@
           <div class="modal-body">
             <div id="myModalBody"></div>
 	    <div id="modal_message" class="alert alert-danger mt-3" style="display:none" role="alert"></div>
+	    <div id="modal_info" class="alert alert-info mt-3" style="display:none" role="info"></div>
 	    <div class="progress mt-3" id="progress" style="display:none">
 	      <div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
 	    </div>
@@ -268,8 +275,8 @@
     <script src="../../sueldos/js/popper.min.js"></script>
     <script src="../../sueldos/js/bootstrap.min.js"></script>
     <script src="../../sueldos/js/datatables.min.js"></script>
-    <script src="https://www.gstatic.com/charts/loader.js"></script>
 
+[% IF js %]
     <script type="text/javascript">
       var head;
       var body;
@@ -297,7 +304,10 @@
 	});
       });
     </script>
-[% IF horas_por_periodo %]
+[% END %]
+
+[% IF horas_por_periodo and ! horas_por_periodo.match('ERROR') %]
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
     <script type="text/javascript">
       google.charts.load('current', {'packages':['corechart']});
       google.charts.setOnLoadCallback(drawChart);
@@ -330,6 +340,7 @@
 	    $this.attr('disabled',true);
 	    $this.attr('txt-backup', $this.html());
 	    $this.html( $this.attr('data-loading-text') );
+	    $('#modal_info').text('');
 	    $('#modal_message').text('');
 	    $('#progress .progress-bar').attr('aria-valuenow','0');
 	    $('#progress .progress-bar').css('width','0');
@@ -342,7 +353,7 @@
 		}
 	    }, 100);
 
-	    $.get('?', {cedula:$this.attr('data-cedula'),opcion:$this.attr('data-opcion')}
+	    $.get('?', {bandeja:$this.attr('data-bandeja'),cedula:$this.attr('data-cedula'),opcion:$this.attr('data-opcion')}
 	    ).done(function(data) {
 	       clearInterval(myTimer);
 	       $this.html( $this.attr('txt-backup') );
@@ -350,6 +361,7 @@
 	       $('#progress .progress-bar').css('width','100%');
 
 	       if (data.error !== "") {
+		 $('#modal_info').text(data.salida).show();
 	         $('#modal_message').text(data.error).show();
 	         $('#myModal').on('hidden.bs.modal', function () {
 	           location.reload();
@@ -372,25 +384,25 @@
 	});
     </script>
     <script type="text/javascript">
-	function modal(modal_title, modal_body, modal_processing, cedula, modal_opcion, modal_button) {
+	function modal(modal_title, modal_body, modal_processing, bandeja, cedula, modal_opcion, modal_button) {
 		$('#myModal #myModalLabel').html(modal_title);
 		$('#myModal #myModalBody').html(modal_body);
 		$('#myModal #modal_submit').attr('data-loading-text', modal_processing);
+		$('#myModal #modal_submit').attr('data-bandeja', bandeja);
 		$('#myModal #modal_submit').attr('data-cedula', cedula);
 		$('#myModal #modal_submit').attr('data-opcion', modal_opcion);
 		$('#myModal #modal_submit').html(modal_button);
 		$("#myModal").modal()
 	}
-	function cargar() {
-		modal("Crear período y liquidar","Esta operación va a crear un nuevo período de liquidación hasta el día de hoy y luego hace la liquidación correspondiente","Reliquidando","","cargar","Crear período y liquidar");
+	function cargar(bandeja) {
+		modal("Docencia "+(bandeja=="dd"?"Directa":"Indirecta")+" - Crear período y liquidar","Esta operación va a crear un nuevo período de liquidación hasta el día de hoy y luego hace la liquidación correspondiente","Reliquidando",bandeja,"","cargar","Crear período y liquidar ("+bandeja+")");
 	}
-	function reliquidar(cedula) {
-		modal("Reliquidar", "Esta operación va a generar una nueva liquidación para este docente", "Reliquidando", cedula, "reliquidar", "Reliquidar");
+	function reliquidar(bandeja,cedula) {
+		modal("Reliquidar", "Esta operación va a generar una nueva liquidación para este docente", "Reliquidando", bandeja, cedula, "reliquidar", "Reliquidar");
 	}
-	function borrar(cedula) {
-		modal("Borrar pendientes", "Esta operación va a borrar la liquidación pendiente para este docente", "Borrando", cedula, "borrar", "Borrar");
+	function borrar(bandeja,cedula) {
+		modal("Borrar pendientes", "Esta operación va a borrar la liquidación pendiente para este docente", "Borrando", bandeja, cedula, "borrar", "Borrar");
 	}
     </script>
-
   </body>
 </html>
