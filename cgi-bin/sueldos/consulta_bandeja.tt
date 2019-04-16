@@ -24,150 +24,62 @@
 	  <div class="sidebar-sticky">
 
 	    <ul class="nav flex-column">
-
+[% FOREACH dir IN opciones -%]
+  [% IF dir.titulo -%]
 	      <li class="nav-item nav-folder">
-		  <b>Corporativo</b>
+	        <b>[% dir.titulo %]</b>
 
-		  <ul class="nav flex-column ml-3">
-	          <li class="nav-item">
-		    <a class="nav-link[% IF opcion=="corporativo" %] active[% END %]" href="?opcion=corporativo[% IF cedula %]&cedula=[% cedula %][% END %]">
-		      <span class="fas fa-search feather"></span>
-		      Consulta
-		    </a>
-	          </li>
-	          <li class="nav-item">
-		    <a class="nav-link[% IF opcion=="certificados" %] active[% END %]" href="?opcion=certificados[% IF cedula %]&cedula=[% cedula %][% END %]">
-		      <span class="fas fa-medkit feather"></span>
-		      Certificados Médicos
-		    </a>
-	          </li>
-		  </ul>
+	        <ul class="nav flex-column ml-3">
+    [% FOREACH opc IN dir.items -%]
+      [% IF opc.titulo -%]
+	           <li class="nav-item">
+	             <a class="nav-link[% IF opc.opcion==opcion %] active[% END %]" href="?opcion=[% opc.opcion %][% IF cedula %]&cedula=[% cedula %][% END %]">
+	               <span class="[% opc.icono %] feather"></span>
+	               [% opc.titulo %]
+	             </a>
+	           </li>
+      [%- END %]
+    [%- END %]
+	        </ul>
 	      </li>
-
-	      <li class="nav-item nav-folder">
-		  <b>Bandeja de DD</b>
-
-		  <ul class="nav flex-column ml-3">
-		  <li class="nav-item">
-		    <a class="nav-link[% IF opcion=="consultaDD" %] active[% END %]" href="?opcion=consultaDD[% IF cedula %]&cedula=[% cedula %][% END %]">
-		      <span class="fas fa-search feather"></span>
-		      Consulta
-		    </a>
-		  </li>
-		  <li class="nav-item">
-		    <a class="nav-link[% IF opcion=="resumenDD" %] active[% END %]" href="?opcion=resumenDD[% IF cedula %]&cedula=[% cedula %][% END %]">
-		      <span class="fas fa-circle feather"></span>
-		      Pendientes
-		    </a>
-		  </li>
-		  <li class="nav-item">
-		    <a class="nav-link[% IF opcion=="erroresDD" %] active[% END %]" href="?opcion=erroresDD[% IF cedula %]&cedula=[% cedula %][% END %]">
-		      <span class="fas fa-times-circle feather"></span>
-		      Errores
-		    </a>
-		  </li>
-		  <li class="nav-item">
-		    <a class="nav-link[% IF opcion=="periodosDD" %] active[% END %]" href="?opcion=periodosDD[% IF cedula %]&cedula=[% cedula %][% END %]">
-		      <span class="far fa-calendar-alt feather"></span>
-		      Períodos
-		    </a>
-		  </li>
-		  </ul>
-	      </li>
- 
-	      <li class="nav-item nav-folder">
-		  <b>Bandeja de DI</b>
-
-		  <ul class="nav flex-column ml-3">
-		  <li class="nav-item">
-		    <a class="nav-link[% IF opcion=="consultaDI" %] active[% END %]" href="?opcion=consultaDI[% IF cedula %]&cedula=[% cedula %][% END %]">
-		      <span class="fas fa-search feather"></span>
-		      Consulta
-		    </a>
-		  </li>
-		  <li class="nav-item">
-		    <a class="nav-link[% IF opcion=="resumenDI" %] active[% END %]" href="?opcion=resumenDI[% IF cedula %]&cedula=[% cedula %][% END %]">
-		      <span class="fas fa-circle feather"></span>
-		      Pendientes
-		    </a>
-		  </li>
-		  <li class="nav-item">
-		    <a class="nav-link[% IF opcion=="erroresDI" %] active[% END %]" href="?opcion=erroresDI[% IF cedula %]&cedula=[% cedula %][% END %]">
-		      <span class="fas fa-times-circle feather"></span>
-		      Errores
-		    </a>
-		  </li>
-		  <li class="nav-item">
-		    <a class="nav-link[% IF opcion=="periodosDI" %] active[% END %]" href="?opcion=periodosDI[% IF cedula %]&cedula=[% cedula %][% END %]">
-		      <span class="far fa-calendar-alt feather"></span>
-		      Períodos
-		    </a>
-		  </li>
-		  </ul>
-	      </li>
- 
-	      <li class="nav-item nav-folder">
-		  <b>Bandeja de multas</b>
-
-		  <ul class="nav flex-column ml-3">
-		  <li class="nav-item">
-		    <a class="nav-link[% IF opcion=="multas" %] active[% END %]" href="?opcion=multas[% IF cedula %]&cedula=[% cedula %][% END %]">
-		      <span class="fas fa-search feather"></span>
-		      Consulta
-		    </a>
-		  </li>
-		  </ul>
-	      </li>
-
-	      <li class="nav-item nav-folder">
-		  <b>SIAP</b>
-
-		  <ul class="nav flex-column ml-3">
-	          <li class="nav-item">
-		    <a class="nav-link[% IF opcion=="siap" %] active[% END %]" href="?opcion=siap[% IF cedula %]&cedula=[% cedula %][% END %]">
-		      <span class="fas fa-search feather"></span>
-		      Consulta
-		    </a>
-	          </li>
-	          <li class="nav-item">
-		    <a class="nav-link[% IF opcion=="suspensiones" %] active[% END %]" href="?opcion=suspensiones[% IF cedula %]&cedula=[% cedula %][% END %]">
-		      <span class="fas fa-times feather"></span>
-		      Marcas de suspensión de pagos
-		    </a>
-	          </li>
-	          <li class="nav-item">
-		    <a class="nav-link[% IF opcion=="procesos" %] active[% END %]" href="?opcion=procesos[% IF cedula %]&cedula=[% cedula %][% END %]">
-		      <span class="fas fa-tasks feather"></span>
-		      Procesos
-		    </a>
-	          </li>
-		  </ul>
-	      </li>
+  [%- END %]
+	    </ul>
+[%- END %]
 
 [% IF admin %]
 	      <hr class="w-100">
 
 	      <li class="nav-item nav-folder">
-		  <b>Administración</b>
+	        <b>Administración</b>
 
-		  <ul class="nav flex-column ml-3">
-		  <li class="nav-item">
-		    <a class="nav-link[% IF opcion=="cargar" %] active[% END %]" href="javascript:cargar('dd')">
-		      <span class="fas fa-play-circle feather"></span>
-		      Cargar bandeja de DD
-		    </a>
-		  </li>
-		  <li class="nav-item">
-		    <a class="nav-link[% IF opcion=="cargar" %] active[% END %]" href="javascript:cargar('di')">
-		      <span class="fas fa-play-circle feather"></span>
-		      Cargar bandeja de DI
-		    </a>
-		  </li>
-		  </ul>
+	        <ul class="nav flex-column ml-3">
+	        <li class="nav-item">
+	          <a class="nav-link[% IF opcion=="cargar" %] active[% END %]" href="javascript:cargar('dd','Docencia Directa')">
+	            <span class="fas fa-play-circle feather"></span>
+	            Cargar bandeja de DD
+	          </a>
+	        </li>
+	        <li class="nav-item">
+	          <a class="nav-link[% IF opcion=="cargar" %] active[% END %]" href="javascript:cargar('di','Docencia Indirecta')">
+	            <span class="fas fa-play-circle feather"></span>
+	            Cargar bandeja de DI
+	          </a>
+	        </li>
+	        <li class="nav-item">
+	          <a class="nav-link[% IF opcion=="cargar" %] active[% END %]" href="javascript:cargar('he','Horas Extas')">
+	            <span class="fas fa-play-circle feather"></span>
+	            Cargar bandeja de HE
+	          </a>
+	        </li>
+	        <li class="nav-item">
+	          <a class="nav-link[% IF opcion=="cargar" %] active[% END %]" href="javascript:cargar('vi','Viáticos')">
+	            <span class="fas fa-play-circle feather"></span>
+	            Cargar bandeja de VI
+	          </a>
+	        </li>
+	        </ul>
 	      </li>
-
 [% END %]
-
 	    </ul>
 	  </div>
 	</nav>
@@ -280,7 +192,7 @@
     <script type="text/javascript">
       var head;
       var body;
-      $(document).ready(function(){
+      $(document).ready(function () {
 [% js %]
       });
     </script>
@@ -394,8 +306,8 @@
 		$('#myModal #modal_submit').html(modal_button);
 		$("#myModal").modal()
 	}
-	function cargar(bandeja) {
-		modal("Docencia "+(bandeja=="dd"?"Directa":"Indirecta")+" - Crear período y liquidar","Esta operación va a crear un nuevo período de liquidación hasta el día de hoy y luego hace la liquidación correspondiente","Reliquidando",bandeja,"","cargar","Crear período y liquidar ("+bandeja+")");
+	function cargar(bandeja,nombre) {
+		modal(nombre+" - Crear período y liquidar","Esta operación va a crear un nuevo período de liquidación hasta el día de hoy y luego hace la liquidación correspondiente","Reliquidando",bandeja,"","cargar","Crear período y liquidar ("+bandeja+")");
 	}
 	function reliquidar(bandeja,cedula) {
 		modal("Reliquidar", "Esta operación va a generar una nueva liquidación para este docente", "Reliquidando", bandeja, cedula, "reliquidar", "Reliquidar");
@@ -403,6 +315,7 @@
 	function borrar(bandeja,cedula) {
 		modal("Borrar pendientes", "Esta operación va a borrar la liquidación pendiente para este docente", "Borrando", bandeja, cedula, "borrar", "Borrar");
 	}
+        $('div.sidebar-sticky').scrollTop( $('li:has(ul > li > a.nav-link.active)').offset().top );
     </script>
   </body>
 </html>

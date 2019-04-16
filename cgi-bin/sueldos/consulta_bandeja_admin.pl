@@ -12,43 +12,49 @@ use CGI::Carp qw/fatalsToBrowser/;
 use Cache::Memcached;
 use Template;
 use portal3 qw/getSession leoPermiso dbDisconnect dbGet myScriptName checkFormat error/;
+use periodos;
+use corporativo;
 use bandeja_dd;
 use bandeja_di;
-use periodos;
+use horasextras;
+use viaticos;
+use multas;
+use siap;
 
 sub dbConnect(;$$$) ;
 sub json_response($) ;
 sub data2js($) ;
-sub corporativo_buscar($$) ;
-sub corporativo_certificados($$) ;
-sub multas($$) ;
-sub siap_buscar($$) ;
-sub siap_suspensiones($$) ;
-sub siap_procesos ($) ;
-sub coordinacion ($$$) ;
-sub nombre($$) ;
 sub proxy($) ;
 sub resumen_posesiones($) ;
 sub opcion_corporativo_consulta($$) ;
 sub opcion_corporativo_certificados($$) ;
-sub opcion_resumen_bandeja($$) ;
-sub opcion_consulta_bandeja($$) ;
-sub opcion_errores($$) ;
-sub opcion_periodos($$) ;
-sub opcion_multas($$) ;
+sub opcion_bandejadd_consulta($$) ;
+sub opcion_bandejadd_resumen($$) ;
+sub opcion_bandejadd_errores($$) ;
+sub opcion_bandejadd_periodos($$) ;
+sub opcion_bandejadi_consulta($$) ;
+sub opcion_bandejadi_resumen($$) ;
+sub opcion_bandejadi_errores($$) ;
+sub opcion_bandejadi_periodos($$) ;
+sub opcion_horasextras_consulta($$) ;
+sub opcion_horasextras_resumen($$) ;
+sub opcion_horasextras_errores($$) ;
+sub opcion_horasextras_periodos($$) ;
+sub opcion_viaticos_consulta($$) ;
+sub opcion_multas_consulta($$) ;
 sub opcion_siap_consulta($$) ;
 sub opcion_siap_suspensiones($$) ;
 sub opcion_siap_procesos($$) ;
-sub opcion_borrar($$) ;
-sub opcion_reliquidar($$) ;
-sub opcion_cargar($$) ;
+sub ajax_borrar($$) ;
+sub ajax_reliquidar($$) ;
+sub ajax_cargar($$) ;
 
 my ($userid,$sessionid) = getSession(cookie(-name=>'SESION'));
 
 my $cedula = checkFormat(param('cedula'), '[\d .-]+');
 $cedula =~ s/[^\d]//g;
 my $opcion = checkFormat(param('opcion'), '\w+') || 'resumen';
-my $bandeja = checkFormat(param('bandeja'), '(dd|di)') || 'dd';
+my $bandeja = checkFormat(param('bandeja'), '(dd|di|he|vi)');
 
 my $page = Template->new(EXPOSE_BLOCKS => 1);
 my %tvars;
@@ -63,31 +69,51 @@ my $dbh_personal = dbConnect("Personal") || error("No se puede establecer una co
 
 if ($cedula) {
 	$tvars{cedula} = $cedula;
-	$tvars{nombre} = nombre($dbh_personal,$cedula);
+	$tvars{nombre} = corporativo::nombre($dbh_personal,$cedula);
 }
 
-my %dispatcher = (
-	corporativo => \&opcion_corporativo_consulta,
-	certificados => \&opcion_corporativo_certificados,
+my @opciones = (
+        {titulo=>'Corporativo', items=> [
+		{opcion=>'corporativo', titulo=>'Consulta', icono=>'fas fa-search', funcion=>\&opcion_corporativo_consulta},
+		{opcion=>'certificados', titulo=>'Certificados Médicos', icono=>'fas fa-medkit', funcion=>\&opcion_corporativo_certificados},
+	]},
+	{titulo=>'Bandeja de DD', items=> [
+		{opcion=>'consultaDD', titulo=>'Consulta', icono=>'fas fa-search', funcion=>\&opcion_bandejadd_consulta},
+		{opcion=>'resumenDD', titulo=>'Pendientes', icono=>'fas fa-circle', funcion=>\&opcion_bandejadd_resumen},
+		{opcion=>'erroresDD', titulo=>'Errores', icono=>'fas fa-times-circle', funcion=>\&opcion_bandejadd_errores},
+		{opcion=>'periodosDD', titulo=>'Períodos', icono=>'far fa-calendar-alt', funcion=>\&opcion_bandejadd_periodos},
+	]},
+	{titulo=>'Bandeja de DI', items=> [
+		{opcion=>'consultaDI', titulo=>'Consulta', icono=>'fas fa-search', funcion=>\&opcion_bandejadi_consulta},
+		{opcion=>'resumenDI', titulo=>'Pendientes', icono=>'fas fa-circle', funcion=>\&opcion_bandejadi_resumen},
+		{opcion=>'erroresDI', titulo=>'Errores', icono=>'fas fa-times-circle', funcion=>\&opcion_bandejadi_errores},
+		{opcion=>'periodosDI', titulo=>'Períodos', icono=>'far fa-calendar-alt', funcion=>\&opcion_bandejadi_periodos},
 
-	resumenDD => \&opcion_resumen_bandeja_dd,
-	consultaDD => \&opcion_consulta_bandeja_dd,
-	erroresDD => \&opcion_errores_dd,
-	periodosDD => \&opcion_periodos_dd,
-
-	resumenDI => \&opcion_resumen_bandeja_di,
-	consultaDI => \&opcion_consulta_bandeja_di,
-	erroresDI => \&opcion_errores_di,
-	periodosDI => \&opcion_periodos_di,
-
-	borrar => \&opcion_borrar,
-	reliquidar => \&opcion_reliquidar,
-
-	multas => \&opcion_multas,
-	siap => \&opcion_siap_consulta,
-	suspensiones => \&opcion_siap_suspensiones,
-	procesos => \&opcion_siap_procesos,
-	cargar => \&opcion_cargar,
+		{opcion=>'reliquidar', funcion=>\&ajax_reliquidar},
+		{opcion=>'borrar', funcion=>\&ajax_borrar},
+	]},
+	{titulo=>'Bandeja de Horas Extras', items=> [
+		{opcion=>'consultaHE', titulo=>'Consulta', icono=>'fas fa-search', funcion=>\&opcion_horasextras_consulta},
+		{opcion=>'resumenHE', titulo=>'Pendientes', icono=>'fas fa-circle', funcion=>\&opcion_horasextras_resumen},
+		{opcion=>'erroresHE', titulo=>'Errores', icono=>'fas fa-times-circle', funcion=>\&opcion_horasextras_errores},
+		{opcion=>'periodosHE', titulo=>'Períodos', icono=>'far fa-calendar-alt', funcion=>\&opcion_horasextras_periodos},
+	]},
+	{titulo=>'Bandeja de Viáticos', items=> [
+		{opcion=>'consultaV', titulo=>'Consulta', icono=>'fas fa-search', funcion=>\&opcion_viaticos_consulta},
+		{opcion=>'resumenV', titulo=>'Pendientes', icono=>'fas fa-circle', funcion=>\&opcion_viaticos_resumen},
+		{opcion=>'erroresV', titulo=>'Errores', icono=>'fas fa-times-circle', funcion=>\&opcion_viaticos_errores},
+		{opcion=>'periodosV', titulo=>'Períodos', icono=>'far fa-calendar-alt', funcion=>\&opcion_viaticos_periodos},
+	]},
+	{titulo=>'Bandeja de Multas', items=> [
+		{opcion=>'consultaM', titulo=>'Consulta', icono=>'fas fa-search', funcion=>\&opcion_multas_consulta},
+	]},
+	{titulo=>'SIAP', items=> [
+		{opcion=>'siap', titulo=>'Consulta', icono=>'fas fa-search', funcion=>\&opcion_siap_consulta},
+		{opcion=>'procesos', titulo=>'Procesos', icono=>'fas fa-tasks', funcion=>\&opcion_siap_procesos},
+	]},
+	{items=> [
+		{opcion=>'cargar', funcion=>\&ajax_cargar},
+	]},
 );
 
 my %param = (
@@ -99,9 +125,23 @@ my %param = (
 
 my $err;
 
-if (defined($dispatcher{$opcion})) {
-	$err = &{$dispatcher{$opcion}}(\%param, \%tvars);
+if ($opcion) {
+	# Busco la configuración de la opción que vino por parámetro
+	my $opc;
+	foreach my $dir (@opciones) {
+		foreach my $item (@{$dir->{items}}) {
+			if ($item->{opcion} eq $opcion) {
+				$opc = $item;
+				last;
+			}
+		}
+	}
+	if (defined($opc) && defined($opc->{funcion})) {
+		$err = &{$opc->{funcion}}(\%param, \%tvars);
+	}
 }
+
+$tvars{opciones} = \@opciones;
 
 if (!$err) {
 	print header(-charset => 'utf-8');
@@ -166,335 +206,15 @@ sub data2js($) {
 
 	return undef if (!defined($data->{data}) || $#{$data->{data}} == -1);
 
-        my $js = "body = Array(\n";
+        my $js = "    body = [\n";
         foreach my $row (@{$data->{data}}) {
-                $js .= "Array('".join("','",@$row)."' ), \n";
+                $js .= '  ["'.join('","',@$row).'"],'."\n";
         }
-	$js .= ")\n";
-        $js .= "head = Array( {title:'".join("'},{title:'",@{$data->{head}})."'} );\n";
+	$js =~ s/,\n$/\n/s;
+	$js .= "];\n";
+        $js .= '    head = [ {title: "'.join('"},{title: "',@{$data->{head}}).'"} ];'."\n";
 
 	return $js;
-}
-
-sub corporativo_horas_por_periodo($$) {
-	my ($dbh, $cedula) = @_;
-	
-	my @time = localtime(time());
-	my $year = $time[5]+1900;
-	if ($time[4]+1 < 3) {
-		# enero y febrero
-		$year--;
-	}
-	my $desde = sprintf "%4d-03-01", $year;
-	my $hasta = sprintf "%4d-02-28", $year+1;
-
-	my $sth = $dbh->prepare("
-
-call sp_horas_por_periodo((select perid from Personas.V_PERSONAS where perdocid='$cedula'),'$desde','$hasta',0,0,0,0);
-
-	");
-	$sth->execute();
-
-	(defined($sth) && !$DBI::errstr) or return "ERROR: $DBI::errstr";
-
-	my $rows = $sth->fetchall_arrayref;
-
-	$sth->finish;
-
-	return $rows;
-}
-
-
-sub corporativo_buscar($$) {
-	my ($dbh, $cedula) = @_;
-
-	my $sth = $dbh->prepare("
-
-SELECT perdocid,
-       FuncAsignadaFchDesde,
-       FuncAsignadaFchHasta,
-       DependDesc,
-       group_concat(v.RelLabId separator ', '),
-       if(AsignDesc<>'',if(DenomCargoDesc<>'DOCENTE',concat(DenomCargoDesc,' ',AsignDesc),AsignDesc),if(DenomCargoDesc='DOCENTE',concat(DenomCargoDesc,':',FuncionDesc),DenomCargoDesc)),
-       suplencias,
-       RelLabCicloPago,
-       format(sum(CargaHorariaCantHoras),2)
-FROM v_funciones_del_personal v
-
--- suplencias, reservas de cargo, etc:
-LEFT JOIN (
-       select s.RelLabId,
-              group_concat(
-                           distinct(
-                             concat(SuplCausDesc,': ',greatest(RLtit.RelLabFchIniActividades,ifnull(date(SuplFchAlta),'1000-01-01')),' a ',date(ifnull(RLsupl.RelLabCeseFchReal,ifnull(RLtit.RelLabCeseFchReal,'1000-01-01'))))
-                           )
-                           order by RLsupl.RelLabVacanteFchPubDesde
-                           separator '<br>'
-              ) suplencias
-       from SUPLENCIAS s
-       join SUPLENCIAS_CAUSALES using (SuplCausId)
-       join RELACIONES_LABORALES RLtit using (RelLabId)
-       -- join RELACIONES_LABORALES RLsupl on RLsupl.SillaId=RLtit.SillaId and RLsupl.RelLabVacantePrioridad=RLtit.RelLabVacantePrioridad+1
-       join RELACIONES_LABORALES RLsupl on RLsupl.RelLabId=s.SuplRelLabId
-       where SuplCausId in (6,7,15,16,17,3,40,41,43,39)
-         and (RLsupl.RelLabVacanteFchPubDesde is null
-              or RLsupl.RelLabCeseFchReal is null
-              or date(RLsupl.RelLabVacanteFchPubDesde)<=date(RLsupl.RelLabCeseFchReal)
-         )
-	 and (RLsupl.RelLabCeseFchReal is null
-              or year(RLsupl.RelLabCeseFchReal) >= (year(curdate()) - if(month(curdate())<3,1,0))
-         )
-         and RLsupl.RelLabAnulada=0
-       group by 1
-) S ON S.RelLabId=v.RelLabId
-
-WHERE perdocid='".$cedula."'
-  AND (FuncAsignadaFchHasta>='2019-03-01' OR FuncAsignadaFchHasta='1000-01-01')
-  AND (FuncAsignadaFchDesde<=FuncAsignadaFchHasta OR FuncAsignadaFchHasta='1000-01-01')
-GROUP BY 1,2,3,4,6,7,8
-ORDER BY 2,4,6,7,3;
-
-	");
-	$sth->execute();
-
-	(defined($sth) && !$DBI::errstr) or return undef;
-
-	my $rows = $sth->fetchall_arrayref;
-
-	$sth->finish;
-
-	return {head=>["Cédula","Desde","Hasta","Dependencia","RelLab","Cargo/Asignatura","Observaciones","Ciclo","Horas"], data=>$rows};
-}
-
-sub corporativo_certificados($$) {
-	my ($dbh, $cedula) = @_;
-
-	my $desde = "concat(year(curdate())+if(month(curdate())<3,-1,0),'-03-01')";
-	my $sth = $dbh->prepare("
-
-SELECT concat(cedula,digito) cedula,
-       CertFchIni,
-       CertFchFin,
-       DependDesc,
-       codlic,
-       observaciones
-FROM certificaciones_anep
-WHERE cedula=left('$cedula',length('$cedula')-1)
-  AND digito=right('$cedula',1)
-  AND (CertFchIni>=$desde OR CertFchFin>=$desde)
-ORDER BY 1,2;
-
-	");
-	$sth->execute();
-
-	(defined($sth)) or return undef;
-
-	my $rows = $sth->fetchall_arrayref;
-
-	$sth->finish;
-
-	return {head=>["Cédula","Desde","Hasta","Dependencia","Tipo","Observaciones"], data=>$rows};
-}
-
-sub multas($$) {
-	my ($dbh,$cedula) = @_;
-
-	my $SQL= "
-
-SELECT PerDocNum Cédula,
-       MultAnio,
-       MultMes,
-       InsDsc,
-       case RubroCod when '81117' then 'ND' when '81119' then 'PA' when '81131' then 'DI' when '81118' then 'DD' else NULL end tipo,
-       MultCic,
-       concat(if(MultCantDias<>0,concat(MultCantDias,' D'),''),if(MultCantHor<>0,concat(MultCantHor,' H'),'')) DiasHoras,
-       MultFchCarga,
-       MultFchProc,
-       Mensaje
-FROM (
-  select month(max(MultFchCarga)) mes,
-         year(max(MultFchCarga)) anio
-  from siap_ces_tray.imultas
-  where PerDocNum='$cedula'
-) FC
-join siap_ces_tray.imultas M1
-  on month(MultFchCarga)=mes
- and year(MultFchCarga)=anio
-join siap_ces.institucionales
-  on InsCod=MultInsCod
-WHERE PerDocNum='$cedula'
-  AND (MultCantDias<>0 OR MultCantHor<>0);
-
-	";
-        my $sth = $dbh->prepare($SQL);
-        $sth->execute();
-
-	(defined($sth) && !$DBI::errstr) or return undef;
-
-	my $rows = $sth->fetchall_arrayref;
-
-	$sth->finish;
-
-	return {head=>["Cédula","Año","Mes","Dependencia","Tipo","Ciclo","Días/Horas","FchCarga","FchProc","Mensaje"], data=>$rows};
-}
-
-sub siap_buscar($$) {
-	my ($dbh, $cedula) = @_;
-
-	my $sth = $dbh->prepare("
-
-SELECT perdocnum,
-       DesFchIng,
-       DesFchEgr,
-       InsDsc,
-       ifnull(AsiNom,cargo),
-       R.reservas,
-       CicCod,
-       sum(horas)
-FROM siap_ces.v_designaciones v
-LEFT JOIN siap_ces.asignaturas using (AsiCod)
-LEFT JOIN (
-  SELECT dc.DesConEmpCod,
-         dc.DesConCarNum,
-         dc.DesConCarNumVer,
-         group_concat(concat(ConDsc,': ',DesConFchDes,' a ',DesConFchHas) separator '<br>') reservas
-  FROM siap_ces.designacionesconceptos dc
-  JOIN siap_ces.conceptos using (ConCod)
-  WHERE dc.ConCod in (81150,81151,81154,81155,81156)
-    AND (dc.DesConFchHas='1000-01-01' OR year(dc.DesConFchHas)>=year(curdate()))
-  GROUP BY 1,2,3
-) R ON R.DesConEmpCod = v.EmpCod
-   AND R.DesConCarNum = v.CarNum
-   AND R.DesConCarNumVer = v.CarNumVer
-WHERE perdocnum='".$cedula."'
-  AND (DesFchEgr='1000-01-01' OR DesFchEgr>='2019-03-01')
-GROUP BY 1,2,3,4,5,7
-ORDER BY 2,4,5,7,3;
-
-	");
-	$sth->execute();
-
-	(defined($sth)) or return undef;
-
-	my $rows = $sth->fetchall_arrayref;
-
-	$sth->finish;
-
-	return {head=>["Cédula","Desde","Hasta","Dependencia","Cargo/Asignatura","Observaciones","Ciclo","Horas"], data=>$rows};
-}
-
-sub siap_suspensiones($$) {
-	my ($dbh, $cedula) = @_;
-
-	my $desde = "concat(year(curdate())+if(month(curdate())<3,-1,0),'-03-01')";
-
-	my $SQL = "
-SELECT PerDocNum,
-       Desde,
-       Hasta,
-       Motivo
-FROM siap_ces_tray.suspensiones
-WHERE PerDocNum='$cedula'
---  AND desde>=$desde
-";
-	my $sth = $dbh->prepare($SQL);
-	$sth->execute() or return undef;
-
-	my $rows = $sth->fetchall_arrayref;
-
-	$sth->finish;
-
-	return {head=>["Cédula","Desde","Hasta","Motivo"], data=>$rows};
-}
-
-sub siap_procesos ($) {
-	my ($dbh) = @_;
-
-
-	my $SQL = "
-select PrcDsc,
-       PrcFchIni,
-       concat(round(100*PrcAct/PrcTot,2),' %') avance,
-       if(time_to_sec(timediff(now(),ifnull(PrcFchUltAct,'1000-01-01')))>600,'Estancado','Activo') estado
-from siap_ces.procesos
-where PrcTot>PrcAct
-  and PrcCancelado=0
-  and PrcEstado=1
-";
-	my $sth = $dbh->prepare($SQL);
-	$sth->execute() or return undef;
-
-	my $rows = $sth->fetchall_arrayref;
-
-	$sth->finish;
-
-	return {head=>["Proceso","Desde","Avance","Estado"], data=>$rows};
-}
-
-sub coordinacion ($$$) {
-	my ($dbh, $cedula, $data) = @_;
-
-	my $SQL = "
-
-SELECT 0 DependId,CicloDePago,HrsCoordinacionFechaAlta,date_add(HrsCoordinacionFechaAlta, interval 1 day) manana,format(sum(HrsCoordConSigno),2)
-FROM HORAS_COORDINACION join Personas.PERSONASDOCUMENTOS on coordperid=perid and paiscod='UY' and doccod='CI'
-WHERE perdocid='".$cedula."'
-  AND HrsCoordinacionFechaAlta>='2019-03-01'
-GROUP BY 1,2,3,4
-ORDER BY 1,2,3,4
-";
-
-	my $sth = $dbh->prepare($SQL);
-	$sth->execute();
-
-	(defined($sth)) or return undef;
-
-	my (%coord);
-	while (my @row = $sth->fetchrow_array) {
-		if (!defined($coord{$row[0]}{$row[1]})) {
-			$coord{$row[0]}{$row[1]} = { horas => $row[4], desde => $row[2] };
-		} else {
-			push @{$data}, [$cedula, $coord{$row[0]}{$row[1]}{desde}, $row[2], '', 'COORDINACION', '', $row[1], $coord{$row[0]}{$row[1]}{horas}];
-			if ($coord{$row[0]}{$row[1]}{horas} + $row[4] > 0) {
-				$coord{$row[0]}{$row[1]}{horas} += $row[4];
-				$coord{$row[0]}{$row[1]}{desde} = $row[3];
-			} elsif ($coord{$row[0]}{$row[1]}{horas} + $row[4] == 0) {
-				delete $coord{$row[0]}{$row[1]};
-			}
-		}
-		
-	}
-	foreach my $dependid (keys %coord) {
-		foreach my $cicloid (keys %{$coord{$dependid}}) {
-			push @{$data}, [$cedula, $coord{$dependid}{$cicloid}{desde}, '', '', 'COORDINACION', '', $cicloid, $coord{$dependid}{$cicloid}{horas}];
-		}
-	}
-
-	$sth->finish;
-}
-
-sub nombre($$) {
-	my ($dbh, $cedula) = @_;
-
-	my $SQL = "
-
-SELECT PerNombreCompleto
-FROM Personas.PERSONAS
-JOIN Personas.PERSONASDOCUMENTOS USING (PerId)
-WHERE paiscod='UY'
-  AND doccod='CI'
-  AND perdocid='".$cedula."'
-";
-
-	my $sth = $dbh->prepare($SQL);
-	$sth->execute();
-
-	(defined($sth)) or return undef;
-
-	my @row = $sth->fetchrow_array;
-	$sth->finish;
-
-	return $row[0];
 }
 
 sub proxy($) {
@@ -576,10 +296,10 @@ sub opcion_corporativo_consulta($$) {
 	my $dbh_personal = $rparam->{dbh_personal};
 
 	if (defined($cedula)) {
-		my $corp = corporativo_buscar($dbh_personal, $cedula);
+		my $corp = corporativo::buscar($dbh_personal, $cedula);
 
 		# agrego las horas de coordinación
-		#coordinacion($dbh_personal, $cedula, $corp->{data});
+		#corporativo::coordinacion($dbh_personal, $cedula, $corp->{data});
 
 		$rtvars->{js} = data2js($corp);
 		if ($rtvars->{js}) {
@@ -587,7 +307,7 @@ sub opcion_corporativo_consulta($$) {
 
 			$rtvars->{resumen_posesiones} = resumen_posesiones($corp);
 
-			$rtvars->{horas_por_periodo} = corporativo_horas_por_periodo($dbh_personal, $cedula);
+			$rtvars->{horas_por_periodo} = corporativo::horas_por_periodo($dbh_personal, $cedula);
 		}
 		$rtvars->{hay_resultado} = 1;
 	}
@@ -605,7 +325,7 @@ sub opcion_corporativo_certificados($$) {
 	my $dbh_personal = $rparam->{dbh_personal};
 
 	if (defined($cedula)) {
-		my $corp = corporativo_certificados($dbh_personal, $cedula);
+		my $corp = corporativo::certificados($dbh_personal, $cedula);
 
 		$rtvars->{js} = data2js($corp);
 		$rtvars->{subtitulo} = "Certificados Médicos:";
@@ -618,21 +338,7 @@ sub opcion_corporativo_certificados($$) {
 	return 0;
 }
 
-sub opcion_resumen_bandeja_dd($$) {
-	my ($rparam, $rtvars) = @_;
-
-	my $dbh_siap = $rparam->{dbh_siap};
-
-	my $resumen = bandeja_dd::resumen($dbh_siap);
-
-	$rtvars->{js} = data2js($resumen);
-	$rtvars->{titulo} = "Datos pendientes en la bandeja DD";
-	$rtvars->{hay_resultado} = 1;
-
-	return 0;
-}
-
-sub opcion_consulta_bandeja_dd($$) {
+sub opcion_bandejadd_consulta($$) {
 	my ($rparam, $rtvars) = @_;
 
 	my $cedula = $rparam->{cedula};
@@ -706,7 +412,21 @@ sub opcion_consulta_bandeja_dd($$) {
 	return 0;
 }
 
-sub opcion_errores_dd($$) {
+sub opcion_bandejadd_resumen($$) {
+	my ($rparam, $rtvars) = @_;
+
+	my $dbh_siap = $rparam->{dbh_siap};
+
+	my $resumen = bandeja_dd::resumen($dbh_siap);
+
+	$rtvars->{js} = data2js($resumen);
+	$rtvars->{titulo} = "Datos pendientes en la bandeja DD";
+	$rtvars->{hay_resultado} = 1;
+
+	return 0;
+}
+
+sub opcion_bandejadd_errores($$) {
 	my ($rparam, $rtvars) = @_;
 
 	my $dbh_siap = $rparam->{dbh_siap};
@@ -736,7 +456,7 @@ sub opcion_errores_dd($$) {
 	return 0;
 }
 
-sub opcion_periodos_dd($$) {
+sub opcion_bandejadd_periodos($$) {
 	my ($rparam, $rtvars) = @_;
 
 	my $dbh_siap = $rparam->{dbh_siap};
@@ -752,21 +472,7 @@ sub opcion_periodos_dd($$) {
 	return 0;
 }
 
-sub opcion_resumen_bandeja_di($$) {
-	my ($rparam, $rtvars) = @_;
-
-	my $dbh_siap = $rparam->{dbh_siap};
-
-	my $resumen = bandeja_di::resumen($dbh_siap);
-
-	$rtvars->{js} = data2js($resumen);
-	$rtvars->{titulo} = "Datos pendientes en la bandeja DI";
-	$rtvars->{hay_resultado} = 1;
-
-	return 0;
-}
-
-sub opcion_consulta_bandeja_di($$) {
+sub opcion_bandejadi_consulta($$) {
 	my ($rparam, $rtvars) = @_;
 
 	my $cedula = $rparam->{cedula};
@@ -795,13 +501,26 @@ sub opcion_consulta_bandeja_di($$) {
 	return 0;
 }
 
-sub opcion_errores_di($$) {
+sub opcion_bandejadi_resumen($$) {
+	my ($rparam, $rtvars) = @_;
+
+	my $dbh_siap = $rparam->{dbh_siap};
+
+	my $resumen = bandeja_di::resumen($dbh_siap);
+
+	$rtvars->{js} = data2js($resumen);
+	$rtvars->{titulo} = "Datos pendientes en la bandeja DI";
+	$rtvars->{hay_resultado} = 1;
+
+	return 0;
+}
+
+sub opcion_bandejadi_errores($$) {
 	my ($rparam, $rtvars) = @_;
 
 	my $dbh_siap = $rparam->{dbh_siap};
 
 	my $errores = bandeja_di::errores($dbh_siap);
-$rtvars->{txt} = "ERROR: $errores";
 
 	$rtvars->{js} = data2js($errores);
 	$rtvars->{titulo} = "Personas con último pasaje en error";
@@ -826,7 +545,7 @@ $rtvars->{txt} = "ERROR: $errores";
 	return 0;
 }
 
-sub opcion_periodos_di($$) {
+sub opcion_bandejadi_periodos($$) {
 	my ($rparam, $rtvars) = @_;
 
 	my $dbh_siap = $rparam->{dbh_siap};
@@ -842,7 +561,7 @@ sub opcion_periodos_di($$) {
 	return 0;
 }
 
-sub opcion_multas($$) {
+sub opcion_horasextras_consulta($$) {
 	my ($rparam, $rtvars) = @_;
 
 	my $dbh_siap = $rparam->{dbh_siap};
@@ -850,7 +569,168 @@ sub opcion_multas($$) {
 
 	if (defined($cedula)) {
 
-		my $multas = multas($dbh_siap,$cedula);
+		my $multas = horasextras::buscar($dbh_siap,$cedula);
+
+		$rtvars->{js} = data2js($multas);
+		$rtvars->{subtitulo} = "Datos del último mes en la bandeja para esta cédula";
+		$rtvars->{hay_resultado} = 1;
+	}
+
+	$rtvars->{titulo} = "Bandeja de Horas Extras";
+	$rtvars->{buscador_cedulas} = 1;
+
+	return 0;
+}
+
+sub opcion_horasextras_resumen($$) {
+	my ($rparam, $rtvars) = @_;
+
+	my $dbh_siap = $rparam->{dbh_siap};
+
+	my $resumen = horasextras::resumen($dbh_siap);
+
+	$rtvars->{js} = data2js($resumen);
+	$rtvars->{titulo} = "Datos pendientes en la bandeja de Horas Extras";
+	$rtvars->{hay_resultado} = 1;
+
+	return 0;
+}
+
+sub opcion_horasextras_errores($$) {
+	my ($rparam, $rtvars) = @_;
+
+	my $dbh_siap = $rparam->{dbh_siap};
+
+	my $errores = horasextras::errores($dbh_siap);
+
+	$rtvars->{js} = data2js($errores);
+	$rtvars->{titulo} = "Personas con último pasaje en error";
+	$rtvars->{hay_resultado} = 1;
+
+	if ($#{$errores->{data}} > -1) {
+		# Agrego enlaces en la primer columna, para acceder a la consulta de esa cédula
+		$rtvars->{js} .= "
+\$('table#maintable').on( 'draw.dt', function () {
+  \$('table#maintable tbody tr td:nth-child(2)').addClass('link');
+  \$('table#maintable tbody tr td:nth-child(2)').click(function(){
+      window.location.href = '?opcion=consultaHE&cedula='+\$(this).text();
+  });
+});
+
+		";
+		$rtvars->{data_table_options} = '
+			"order": [[ 0, "desc" ]]
+		';
+	}
+
+	return 0;
+}
+
+sub opcion_horasextras_periodos($$) {
+	my ($rparam, $rtvars) = @_;
+
+	my $dbh_siap = $rparam->{dbh_siap};
+
+	my $periodos = periodos->new("he",$dbh_siap);
+
+	my $listado = $periodos->listado();
+
+	$rtvars->{js} = data2js($listado);
+	$rtvars->{titulo} = "Períodos de liquidación";
+	$rtvars->{hay_resultado} = 1;
+
+	return 0;
+}
+
+sub opcion_viaticos_consulta($$) {
+	my ($rparam, $rtvars) = @_;
+
+	my $dbh_siap = $rparam->{dbh_siap};
+	my $cedula = $rparam->{cedula};
+
+	if (defined($cedula)) {
+
+		my $multas = viaticos::buscar($dbh_siap,$cedula);
+
+		$rtvars->{js} = data2js($multas);
+		$rtvars->{subtitulo} = "Datos del último mes en la bandeja para esta cédula";
+		$rtvars->{hay_resultado} = 1;
+	}
+
+	$rtvars->{titulo} = "Bandeja de Viáticos";
+	$rtvars->{buscador_cedulas} = 1;
+
+	return 0;
+}
+
+sub opcion_viaticos_resumen($$) {
+	my ($rparam, $rtvars) = @_;
+
+	my $dbh_siap = $rparam->{dbh_siap};
+
+	my $resumen = viaticos::resumen($dbh_siap);
+
+	$rtvars->{js} = data2js($resumen);
+	$rtvars->{titulo} = "Datos pendientes en la bandeja de Viáticos";
+	$rtvars->{hay_resultado} = 1;
+
+	return 0;
+}
+
+sub opcion_viaticos_errores($$) {
+	my ($rparam, $rtvars) = @_;
+
+	my $dbh_siap = $rparam->{dbh_siap};
+
+	my $errores = viaticos::errores($dbh_siap);
+
+	$rtvars->{js} = data2js($errores);
+	$rtvars->{titulo} = "Personas con último pasaje en error";
+	$rtvars->{hay_resultado} = 1;
+
+	if ($#{$errores->{data}} > -1) {
+		# Agrego enlaces en la primer columna, para acceder a la consulta de esa cédula
+		$rtvars->{js} .= "
+\$('table#maintable').on( 'draw.dt', function () {
+  \$('table#maintable tbody tr td:nth-child(2)').addClass('link');
+  \$('table#maintable tbody tr td:nth-child(2)').click(function(){
+      window.location.href = '?opcion=consultaHE&cedula='+\$(this).text();
+  });
+});
+		";
+		$rtvars->{data_table_options} = '
+			"order": [[ 0, "desc" ]]
+		';
+	}
+
+	return 0;
+}
+
+sub opcion_viaticos_periodos($$) {
+	my ($rparam, $rtvars) = @_;
+
+	my $dbh_siap = $rparam->{dbh_siap};
+
+	my $periodos = periodos->new("vi",$dbh_siap);
+
+	my $listado = $periodos->listado();
+
+	$rtvars->{js} = data2js($listado);
+	$rtvars->{titulo} = "Períodos de liquidación";
+	$rtvars->{hay_resultado} = 1;
+
+	return 0;
+}
+
+sub opcion_multas_consulta($$) {
+	my ($rparam, $rtvars) = @_;
+
+	my $dbh_siap = $rparam->{dbh_siap};
+	my $cedula = $rparam->{cedula};
+
+	if (defined($cedula)) {
+
+		my $multas = multas::buscar($dbh_siap,$cedula);
 
 		$rtvars->{js} = data2js($multas);
 		$rtvars->{subtitulo} = "Datos del último mes en la bandeja para esta cédula";
@@ -871,7 +751,7 @@ sub opcion_siap_consulta($$) {
 
 	if (defined($cedula)) {
 
-		my $siap = siap_buscar($dbh_siap, $cedula);
+		my $siap = siap::buscar($dbh_siap, $cedula);
 
 		$rtvars->{js} = data2js($siap);
 		$rtvars->{subtitulo} = "Últimos datos en SIAP";
@@ -893,7 +773,7 @@ sub opcion_siap_suspensiones($$) {
 	my $cedula = $rparam->{cedula};
 
 	if (defined($cedula)) {
-		my $suspensiones = siap_suspensiones($dbh_siap, $cedula);
+		my $suspensiones = siap::suspensiones($dbh_siap, $cedula);
 
 		$rtvars->{js} = data2js($suspensiones);
 		$rtvars->{subtitulo} = "Suspensiones:";
@@ -911,7 +791,7 @@ sub opcion_siap_procesos($$) {
 
 	my $dbh_siap = $rparam->{dbh_siap};
 
-	my $procesos = siap_procesos($dbh_siap);
+	my $procesos = siap::procesos($dbh_siap);
 
 	$rtvars->{js} = data2js($procesos);
 	$rtvars->{titulo} = "Procesos activos en SIAP";
@@ -920,7 +800,7 @@ sub opcion_siap_procesos($$) {
 	return 0;
 }
 
-sub opcion_borrar($$) {
+sub ajax_borrar($$) {
 	my ($rparam, $rtvars) = @_;
 
 	my $bandeja = $rparam->{bandeja};
@@ -939,7 +819,7 @@ sub opcion_borrar($$) {
 	return 1;
 }
 
-sub opcion_reliquidar($$) {
+sub ajax_reliquidar($$) {
 	my ($rparam, $rtvars) = @_;
 
 	my $dbh_siap = $rparam->{dbh_siap};
@@ -950,8 +830,7 @@ sub opcion_reliquidar($$) {
 	my ($desde,$hasta) = $periodos->minmax();
 
 	if (!$desde || !$hasta) {
-json_response("desde = $desde  hasta=$hasta");
-#		json_response({error=>"No se puede obtener el período de reliquidación desde la base de datos: ".$DBI::errstr});
+		json_response({error=>"No se puede obtener el período de reliquidación desde la base de datos: ".$DBI::errstr});
 		return 1;
 	}
 	if (!$cedula) {
@@ -967,7 +846,7 @@ json_response("desde = $desde  hasta=$hasta");
 	return 1;
 }
 
-sub opcion_cargar($$) {
+sub ajax_cargar($$) {
 	my ($rparam, $rtvars) = @_;
 
 	my $bandeja = $rparam->{bandeja};
