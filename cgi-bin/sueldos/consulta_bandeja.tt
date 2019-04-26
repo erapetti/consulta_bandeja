@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="../../sueldos/css/bootstrap.min.css">
     <!-- link rel="stylesheet" href="../../sueldos/css/font-awesome.min.css" -->
     <link rel="stylesheet" href="../../sueldos/css/fontawesome-all.css">
-    <link rel="stylesheet" href="../../sueldos/css/datatables.min.css">
+    <link rel="stylesheet" href="../../sueldos/css/dataTables.bootstrap4.min.css">
 
     <title>Consulta a la bandeja de sueldos</title>
 
@@ -18,7 +18,7 @@
   </head>
   <body>
 
-    <div class="container-fluid">
+    <div id="maindiv" class="container-fluid">
       <div class="row">
 	<nav class="col-md-2 d-none d-md-block bg-light sidebar">
 	  <div class="sidebar-sticky">
@@ -33,7 +33,7 @@
     [% FOREACH opc IN dir.items -%]
       [% IF opc.titulo -%]
 	           <li class="nav-item">
-	             <a class="nav-link[% IF opc.opcion==opcion %] active[% END %]" href="?opcion=[% opc.opcion %][% IF cedula %]&cedula=[% cedula %][% END %]">
+	             <a class="nav-link[% IF opc.opcion==opcion %] active[% END %]" href="?opcion=[% opc.opcion %][% IF cedula %]&cedula=[% cedula %][% END %]" blur="1">
 	               <span class="[% opc.icono %] feather"></span>
 	               [% opc.titulo %]
 	             </a>
@@ -43,7 +43,6 @@
 	        </ul>
 	      </li>
   [%- END %]
-	    </ul>
 [%- END %]
 
 [% IF admin %]
@@ -110,7 +109,7 @@
 [% END %]
 
 [% IF js %]
-	  <div class="card mb-3">
+	  <div class="card mb-3" style="min-width:46rem">
     [% IF subtitulo %]
 	    <div class="card-header">
 	      [% subtitulo %]
@@ -118,7 +117,7 @@
     [% END %]
 
 	    <div id="datatable" class="mt-5">
-	      <table id="maintable" class="display table table-striped py-3 my-3" style="width:100%">
+	      <table id="maintable" class="display table stripe py-3 my-3" style="width:100%">
 	        <thead></thead>
 	        <tbody></tbody>
 	      </table>
@@ -181,12 +180,22 @@
       </div>
     </div>
 
+    <!-- spinner -->
+    <div class="spinner" id="spinner" style="display:none">
+      <div class="rect1"></div>
+      <div class="rect2"></div>
+      <div class="rect3"></div>
+      <div class="rect4"></div>
+      <div class="rect5"></div>
+    </div>
+
     <!-- Optional JavaScript -->
     <!-- jQuery first, then Popper.js, then Bootstrap JS -->
     <script src="../../sueldos/js/jquery-3.3.1.min.js"></script>
     <script src="../../sueldos/js/popper.min.js"></script>
     <script src="../../sueldos/js/bootstrap.min.js"></script>
-    <script src="../../sueldos/js/datatables.min.js"></script>
+    <script src="../../sueldos/js/jquery.dataTables.min.js"></script>
+    <script src="../../sueldos/js/dataTables.bootstrap4.min.js"></script>
 
 [% IF js %]
     <script type="text/javascript">
@@ -212,6 +221,7 @@
 	              next: "Siguiente",
 	        },
 	  },
+	  fixedHeader: { header: true, },
 	  [% data_table_options %]
 	});
       });
@@ -294,8 +304,6 @@
 	       });
 	    });
 	});
-    </script>
-    <script type="text/javascript">
 	function modal(modal_title, modal_body, modal_processing, bandeja, cedula, modal_opcion, modal_button) {
 		$('#myModal #myModalLabel').html(modal_title);
 		$('#myModal #myModalBody').html(modal_body);
@@ -316,6 +324,14 @@
 		modal("Borrar pendientes", "Esta operación va a borrar la liquidación pendiente para este docente", "Borrando", bandeja, cedula, "borrar", "Borrar");
 	}
         $('div.sidebar-sticky').scrollTop( $('li:has(ul > li > a.nav-link.active)').offset().top );
+	$('a[blur]').click(function(evnt){
+		if (!(evnt.ctrlKey || evnt.shiftKey || evnt.metaKey || (evnt.button && evnt.button == 1))) {
+			setTimeout(function(){
+				$('#maindiv').css('filter','blur(2px)');
+				$('#spinner').show();
+			}, 1500);
+		}
+	});
     </script>
   </body>
 </html>

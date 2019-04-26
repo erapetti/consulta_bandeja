@@ -99,10 +99,10 @@ my @opciones = (
 		{opcion=>'periodosHE', titulo=>'Períodos', icono=>'far fa-calendar-alt', funcion=>\&opcion_horasextras_periodos},
 	]},
 	{titulo=>'Bandeja de Viáticos', items=> [
-		{opcion=>'consultaV', titulo=>'Consulta', icono=>'fas fa-search', funcion=>\&opcion_viaticos_consulta},
-		{opcion=>'resumenV', titulo=>'Pendientes', icono=>'fas fa-circle', funcion=>\&opcion_viaticos_resumen},
-		{opcion=>'erroresV', titulo=>'Errores', icono=>'fas fa-times-circle', funcion=>\&opcion_viaticos_errores},
-		{opcion=>'periodosV', titulo=>'Períodos', icono=>'far fa-calendar-alt', funcion=>\&opcion_viaticos_periodos},
+		{opcion=>'consultaVI', titulo=>'Consulta', icono=>'fas fa-search', funcion=>\&opcion_viaticos_consulta},
+		{opcion=>'resumenVI', titulo=>'Pendientes', icono=>'fas fa-circle', funcion=>\&opcion_viaticos_resumen},
+		{opcion=>'erroresVI', titulo=>'Errores', icono=>'fas fa-times-circle', funcion=>\&opcion_viaticos_errores},
+		{opcion=>'periodosVI', titulo=>'Períodos', icono=>'far fa-calendar-alt', funcion=>\&opcion_viaticos_periodos},
 	]},
 	{titulo=>'Bandeja de Multas', items=> [
 		{opcion=>'consultaM', titulo=>'Consulta', icono=>'fas fa-search', funcion=>\&opcion_multas_consulta},
