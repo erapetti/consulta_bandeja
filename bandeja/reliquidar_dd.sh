@@ -66,7 +66,7 @@ PASSSIAP=`echo -n b0syK2FRTXErb3ZxTTBweHRidDlwSHFGUVQ5OUxxa01idWsxamIrRDk5RT0= |
 
 
 PREBANDEJA=prebandejadd-v1.0.0-20190415.sql
-BANDEJA=bj-9.0.2.py
+BANDEJA=bj-9.0.3.py
 POSBANDEJA=posbandejadd-v1.0.1-20190426.sql
 
 MYSQL="mysql -h $HOST -u $USER -p$PASS --batch --skip-column-names"
