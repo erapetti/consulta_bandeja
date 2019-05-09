@@ -99,7 +99,7 @@ FROM (select ID1.*
        and ifnull(ID2.Resultado,'') in ('','OK','ERROR','PE')
        where ID2.RelLabId is null
 ) ULT
-left join siap_ces.personas p on percod=funcod
+left join siap_ces.personas p using (perdocnum)
 WHERE resultado='ERROR'
   AND DesFchCarga >= '2019-03-01'
 GROUP BY 2
