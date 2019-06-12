@@ -44,41 +44,6 @@
 	      </li>
   [%- END %]
 [%- END %]
-
-[% IF admin %]
-	      <hr class="w-100">
-
-	      <li class="nav-item nav-folder">
-	        <b>Administración</b>
-
-	        <ul class="nav flex-column ml-3">
-	        <li class="nav-item">
-	          <a class="nav-link[% IF opcion=="cargar" %] active[% END %]" href="javascript:cargar('dd','Docencia Directa')">
-	            <span class="fas fa-play-circle feather"></span>
-	            Cargar bandeja de DD
-	          </a>
-	        </li>
-	        <li class="nav-item">
-	          <a class="nav-link[% IF opcion=="cargar" %] active[% END %]" href="javascript:cargar('di','Docencia Indirecta')">
-	            <span class="fas fa-play-circle feather"></span>
-	            Cargar bandeja de DI
-	          </a>
-	        </li>
-	        <li class="nav-item">
-	          <a class="nav-link[% IF opcion=="cargar" %] active[% END %]" href="javascript:cargar('he','Horas Extas')">
-	            <span class="fas fa-play-circle feather"></span>
-	            Cargar bandeja de HE
-	          </a>
-	        </li>
-	        <li class="nav-item">
-	          <a class="nav-link[% IF opcion=="cargar" %] active[% END %]" href="javascript:cargar('vi','Viáticos')">
-	            <span class="fas fa-play-circle feather"></span>
-	            Cargar bandeja de VI
-	          </a>
-	        </li>
-	        </ul>
-	      </li>
-[% END %]
 	    </ul>
 	  </div>
 	</nav>
@@ -109,7 +74,7 @@
 [% END %]
 
 [% IF js %]
-	  <div class="card mb-3" style="min-width:46rem">
+	  <div class="card mb-3 border-light" style="min-width:46rem">
     [% IF subtitulo %]
 	    <div class="card-header">
 	      [% subtitulo %]

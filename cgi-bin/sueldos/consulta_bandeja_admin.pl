@@ -423,6 +423,14 @@ sub opcion_bandejadd_resumen($$) {
 	$rtvars->{titulo} = "Datos pendientes en la bandeja DD";
 	$rtvars->{hay_resultado} = 1;
 
+	if ($rtvars->{admin}) {
+		$rtvars->{btn} = 'Cargar bandeja';
+		$rtvars->{btn_class} = 'btn-primary';
+		$rtvars->{modal_opcion} = 'cargar';
+		$rtvars->{bandeja} = 'dd';
+		$rtvars->{cedula} = 'Docencia Directa';
+	}
+
 	return 0;
 }
 
@@ -512,6 +520,14 @@ sub opcion_bandejadi_resumen($$) {
 	$rtvars->{titulo} = "Datos pendientes en la bandeja DI";
 	$rtvars->{hay_resultado} = 1;
 
+	if ($rtvars->{admin}) {
+		$rtvars->{btn} = 'Cargar bandeja';
+		$rtvars->{btn_class} = 'btn-primary';
+		$rtvars->{modal_opcion} = 'cargar';
+		$rtvars->{bandeja} = 'di';
+		$rtvars->{cedula} = 'Docencia Indirecta';
+	}
+
 	return 0;
 }
 
@@ -593,6 +609,14 @@ sub opcion_horasextras_resumen($$) {
 	$rtvars->{titulo} = "Datos pendientes en la bandeja de Horas Extras";
 	$rtvars->{hay_resultado} = 1;
 
+	if ($rtvars->{admin}) {
+		$rtvars->{btn} = 'Cargar bandeja';
+		$rtvars->{btn_class} = 'btn-primary';
+		$rtvars->{modal_opcion} = 'cargar';
+		$rtvars->{bandeja} = 'he';
+		$rtvars->{cedula} = 'Horas Extras';
+	}
+
 	return 0;
 }
 
@@ -673,6 +697,14 @@ sub opcion_viaticos_resumen($$) {
 	$rtvars->{js} = data2js($resumen);
 	$rtvars->{titulo} = "Datos pendientes en la bandeja de Viáticos";
 	$rtvars->{hay_resultado} = 1;
+
+	if ($rtvars->{admin}) {
+		$rtvars->{btn} = 'Cargar bandeja';
+		$rtvars->{btn_class} = 'btn-primary';
+		$rtvars->{modal_opcion} = 'cargar';
+		$rtvars->{bandeja} = 'vi';
+		$rtvars->{cedula} = 'Viáticos';
+	}
 
 	return 0;
 }

@@ -62,7 +62,7 @@ LEFT JOIN siap_ces.cargos
 WHERE DesFchCarga>='2019-03-01'
   AND perdocnum='".$cedula."'
   AND ifnull(Resultado,'') in ('','OK','ERROR','PE')
-GROUP BY 1,2,3,4,5,6,7,10,11,CauBajCod
+GROUP BY 1,2,3,4,5,6,7,10,11,CauBajCod,SitFunId
 ORDER BY 2,3,4,5,6,7,DesigId
 
 	");

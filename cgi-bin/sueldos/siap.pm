@@ -12,7 +12,9 @@ SELECT perdocnum,
        DesFchIng,
        DesFchEgr,
        InsDsc,
+       RelLabIds,
        ifnull(AsiNom,cargo),
+       CarNum,
        R.reservas,
        CicCod,
        sum(horas)
@@ -45,7 +47,7 @@ ORDER BY 2,4,5,7,3;
 
 	$sth->finish;
 
-	return {head=>["Cédula","Desde","Hasta","Dependencia","Cargo/Asignatura","Observaciones","Ciclo","Horas"], data=>$rows};
+	return {head=>["Cédula","Desde","Hasta","Dependencia","RelLab","Cargo/Asignatura","CarNum","Observaciones","Ciclo","Horas"], data=>$rows};
 }
 
 sub suspensiones($$) {

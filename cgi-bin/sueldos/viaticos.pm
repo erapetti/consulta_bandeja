@@ -37,7 +37,7 @@ WHERE PerDocNum='$cedula'
 
 	$sth->finish;
 
-	return {head=>["Cédula","Año","Mes","Días","FchCarga","FchProc","Mensaje"], data=>$rows};
+	return {head=>["Cédula","Año","Mes","Horas","FchCarga","FchProc","Mensaje"], data=>$rows};
 }
 
 sub resumen($) {

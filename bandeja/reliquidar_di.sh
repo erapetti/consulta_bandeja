@@ -60,7 +60,7 @@ USERSIAP=bandejadi
 PASSSIAP=`echo -n dDlmUkk1QUQzZXJIWUQ2dXR6M0JrNlNy | base64 -d`
 
 
-PREBANDEJA=prebandejadi-v1.20.07-20190403.sql
+PREBANDEJA=prebandejadi-v1.20.09.20190531.sql
 BANDEJA=bandeja2-v2.00.04-20190405.sql
 POSBANDEJA=bandeja3-v1.20.02-20190322.sql
 
