@@ -86,7 +86,6 @@ ORDER BY 1 DESC,2
 	$sth->execute;
 
 	(defined($sth) && !$DBI::errstr) or return $DBI::errstr;
-	(defined($sth) && !$DBI::errstr) or return undef;
 
 	my $rows = $sth->fetchall_arrayref;
 

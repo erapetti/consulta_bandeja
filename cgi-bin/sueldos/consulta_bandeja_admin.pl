@@ -42,6 +42,8 @@ sub opcion_horasextras_errores($$) ;
 sub opcion_horasextras_periodos($$) ;
 sub opcion_viaticos_consulta($$) ;
 sub opcion_multas_consulta($$) ;
+sub opcion_multas_resumen($$) ;
+sub opcion_multas_errores($$) ;
 sub opcion_siap_consulta($$) ;
 sub opcion_siap_suspensiones($$) ;
 sub opcion_siap_procesos($$) ;
@@ -105,7 +107,10 @@ my @opciones = (
 		{opcion=>'periodosVI', titulo=>'Períodos', icono=>'far fa-calendar-alt', funcion=>\&opcion_viaticos_periodos},
 	]},
 	{titulo=>'Bandeja de Multas', items=> [
-		{opcion=>'consultaM', titulo=>'Consulta', icono=>'fas fa-search', funcion=>\&opcion_multas_consulta},
+		{opcion=>'consultaMU', titulo=>'Consulta', icono=>'fas fa-search', funcion=>\&opcion_multas_consulta},
+		{opcion=>'resumenMU', titulo=>'Pendientes', icono=>'fas fa-circle', funcion=>\&opcion_multas_resumen},
+		{opcion=>'erroresMU', titulo=>'Errores', icono=>'fas fa-times-circle', funcion=>\&opcion_multas_errores},
+		{opcion=>'periodosMU', titulo=>'Períodos', icono=>'far fa-calendar-alt', funcion=>\&opcion_multas_periodos},
 	]},
 	{titulo=>'SIAP', items=> [
 		{opcion=>'siap', titulo=>'Consulta', icono=>'fas fa-search', funcion=>\&opcion_siap_consulta},
@@ -774,6 +779,75 @@ sub opcion_multas_consulta($$) {
 
 	return 0;
 }
+
+sub opcion_multas_resumen($$) {
+	my ($rparam, $rtvars) = @_;
+
+	my $dbh_siap = $rparam->{dbh_siap};
+
+	my $resumen = multas::resumen($dbh_siap);
+
+	$rtvars->{js} = data2js($resumen);
+	$rtvars->{titulo} = "Datos pendientes en la bandeja de Multas";
+	$rtvars->{hay_resultado} = 1;
+
+	if ($rtvars->{admin}) {
+		$rtvars->{btn} = 'Cargar bandeja';
+		$rtvars->{btn_class} = 'btn-primary';
+		$rtvars->{modal_opcion} = 'cargar';
+		$rtvars->{bandeja} = 'he';
+		$rtvars->{cedula} = 'Multas';
+	}
+
+	return 0;
+}
+
+sub opcion_multas_errores($$) {
+	my ($rparam, $rtvars) = @_;
+
+	my $dbh_siap = $rparam->{dbh_siap};
+
+	my $errores = multas::errores($dbh_siap);
+
+	$rtvars->{js} = data2js($errores);
+	$rtvars->{titulo} = "Personas con último pasaje en error";
+	$rtvars->{hay_resultado} = 1;
+
+	if ($#{$errores->{data}} > -1) {
+		# Agrego enlaces en la primer columna, para acceder a la consulta de esa cédula
+		$rtvars->{js} .= "
+\$('table#maintable').on( 'draw.dt', function () {
+  \$('table#maintable tbody tr td:nth-child(2)').addClass('link');
+  \$('table#maintable tbody tr td:nth-child(2)').click(function(){
+      window.location.href = '?opcion=consultaMU&cedula='+\$(this).text();
+  });
+});
+
+		";
+		$rtvars->{data_table_options} = '
+			"order": [[ 0, "desc" ]]
+		';
+	}
+
+	return 0;
+}
+
+sub opcion_multas_periodos($$) {
+	my ($rparam, $rtvars) = @_;
+
+	my $dbh_siap = $rparam->{dbh_siap};
+
+	my $periodos = periodos->new("mu",$dbh_siap);
+
+	my $listado = $periodos->listado();
+
+	$rtvars->{js} = data2js($listado);
+	$rtvars->{titulo} = "Períodos de liquidación";
+	$rtvars->{hay_resultado} = 1;
+
+	return 0;
+}
+
 
 sub opcion_siap_consulta($$) {
 	my ($rparam, $rtvars) = @_;

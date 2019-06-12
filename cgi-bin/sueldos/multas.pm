@@ -44,4 +44,59 @@ WHERE PerDocNum='$cedula'
 	return {head=>["Cédula","Año","Mes","Dependencia","Tipo","Ciclo","Días/Horas","FchCarga","FchProc","Mensaje"], data=>$rows};
 }
 
+sub resumen($) {
+	my ($dbh) = @_;
+
+	my $sth = portal3::dbGet($dbh, "siap_ces_tray.imultas",
+			["MultFchCarga","count(distinct perdocnum) Personas","count(*) Registros"],
+			"MultFchProc is null and MultFchCarga is not null",
+			"group by 1 order by 1"
+	               );
+
+	(defined($sth)) or return undef;
+
+	my $rows = $sth->fetchall_arrayref;
+
+	$sth->finish;
+
+	return {head=>["Fecha Carga","Personas","Registros"], data=>$rows};
+}
+
+sub errores($) {
+	my ($dbh) = @_;
+
+	my $sth = $dbh->prepare("
+
+select max(MultFchCarga) `Fecha de carga`,
+       ULT.perdocnum,
+       replace(ifnull(concat(PerPriApe,' ',ifnull(PerSegApe,''),', ',PerPriNom,' ',ifnull(PerSegNom,'')),''),char(39),char(44)) nombre,
+       count(*) errores
+FROM (select M1.*
+      from imultas M1
+      left join imultas M2
+        on M2.perdocnum=M1.perdocnum
+       and M2.MultAnio=M1.MultAnio
+       and M2.MultMes=M1.MultMes
+       and M2.MultId>M1.MultId
+       and ifnull(M2.Resultado,'') in ('','OK','ERROR','PE')
+       where M2.MultId is null
+) ULT
+left join siap_ces.personas p using (perdocnum)
+WHERE resultado='ERROR'
+  AND MultFchCarga >= '2019-03-01'
+GROUP BY 2
+ORDER BY 1 DESC,2
+
+	");
+	$sth->execute;
+
+	(defined($sth) && !$DBI::errstr) or return $DBI::errstr;
+
+	my $rows = $sth->fetchall_arrayref;
+
+	$sth->finish;
+
+	return {head=>["Fecha Carga","Cédula","Nombre","Errores"], data=>$rows};
+}
+
 1;

@@ -12,7 +12,7 @@ sub new($$) {
 	my $class = shift;
 	my ($bandeja, $dbh) = @_;
 
-	my %validos = ("dd"=>1, "di"=>1, "he"=>1, "vi"=>1);
+	my %validos = ("dd"=>1, "di"=>1, "he"=>1, "vi"=>1, "mu"=>1);
 
 	return undef if (!defined($validos{$bandeja}));
 
