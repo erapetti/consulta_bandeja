@@ -593,7 +593,7 @@ sub opcion_horasextras_consulta($$) {
 		my $multas = horasextras::buscar($dbh_siap,$cedula);
 
 		$rtvars->{js} = data2js($multas);
-		$rtvars->{subtitulo} = "Datos del último mes en la bandeja para esta cédula";
+		$rtvars->{subtitulo} = "Datos del año actual en la bandeja para esta cédula";
 		$rtvars->{hay_resultado} = 1;
 	}
 
@@ -682,7 +682,7 @@ sub opcion_viaticos_consulta($$) {
 		my $multas = viaticos::buscar($dbh_siap,$cedula);
 
 		$rtvars->{js} = data2js($multas);
-		$rtvars->{subtitulo} = "Datos del último mes en la bandeja para esta cédula";
+		$rtvars->{subtitulo} = "Datos del año actual en la bandeja para esta cédula";
 		$rtvars->{hay_resultado} = 1;
 	}
 
@@ -770,7 +770,7 @@ sub opcion_multas_consulta($$) {
 		my $multas = multas::buscar($dbh_siap,$cedula);
 
 		$rtvars->{js} = data2js($multas);
-		$rtvars->{subtitulo} = "Datos del último mes en la bandeja para esta cédula";
+		$rtvars->{subtitulo} = "Datos del año actual en la bandeja para esta cédula";
 		$rtvars->{hay_resultado} = 1;
 	}
 

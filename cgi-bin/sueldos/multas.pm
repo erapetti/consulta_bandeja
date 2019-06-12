@@ -11,25 +11,27 @@ SELECT PerDocNum Cédula,
        MultAnio,
        MultMes,
        InsDsc,
-       case RubroCod when '81117' then 'ND' when '81119' then 'PA' when '81131' then 'DI' when '81118' then 'DD' else NULL end tipo,
+       case RubroCod
+         when '81117' then 'ND'
+         when '381117' then 'ND-MG'
+         when '81119' then 'PA'
+         when '381119' then 'PA-MG'
+         when '81131' then 'DI'
+         when '381131' then 'DI-MG'
+         when '81118' then 'DD'
+         when '381118' then 'DD-MG'
+         else RubroCod end tipo,
        MultCic,
        concat(if(MultCantDias<>0,concat(MultCantDias,' D'),''),if(MultCantHor<>0,concat(MultCantHor,' H'),'')) DiasHoras,
        MultFchCarga,
        MultFchProc,
        Mensaje
-FROM (
-  select month(max(MultFchCarga)) mes,
-         year(max(MultFchCarga)) anio
-  from siap_ces_tray.imultas
-  where PerDocNum='$cedula'
-) FC
-join siap_ces_tray.imultas M1
-  on month(MultFchCarga)=mes
- and year(MultFchCarga)=anio
-join siap_ces.institucionales
-  on InsCod=MultInsCod
+FROM siap_ces_tray.imultas M1
+JOIN siap_ces.institucionales
+  ON InsCod=MultInsCod
 WHERE PerDocNum='$cedula'
-  AND (MultCantDias<>0 OR MultCantHor<>0);
+  AND (MultCantDias<>0 OR MultCantHor<>0)
+  AND (MultAnio = year(curdate()) or month(curdate())<3 and MultAnio = year(curdate())-1)
 
 	";
         my $sth = $dbh->prepare($SQL);

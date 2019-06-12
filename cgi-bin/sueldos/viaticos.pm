@@ -12,20 +12,14 @@ SELECT PerDocNum Cédula,
        ViatAnio,
        ViatMes,
        ViatCant,
+       if(ViaticoComun,'Sí','No') ViaticoComun,
        ViatFchCarga,
        ViatFchProc,
        Mensaje
-FROM (
-  select max(ViatMes) mes,
-         max(ViatAnio) anio
-  from siap_ces_tray.iviaticos
-  where PerDocNum='$cedula'
-) FC
-join siap_ces_tray.iviaticos M1
-  on ViatMes=mes
- and ViatAnio=anio
+FROM siap_ces_tray.iviaticos M1
 WHERE PerDocNum='$cedula'
-  AND ViatCant>0;
+  AND ViatCant>0
+  AND (ViatAnio = year(curdate()) or month(curdate())<3 and ViatAnio = year(curdate())-1)
 
 	";
         my $sth = $dbh->prepare($SQL);
@@ -37,7 +31,7 @@ WHERE PerDocNum='$cedula'
 
 	$sth->finish;
 
-	return {head=>["Cédula","Año","Mes","Horas","FchCarga","FchProc","Mensaje"], data=>$rows};
+	return {head=>["Cédula","Año","Mes","Horas","Común","FchCarga","FchProc","Mensaje"], data=>$rows};
 }
 
 sub resumen($) {

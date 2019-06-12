@@ -14,17 +14,10 @@ SELECT PerDocNum Cédula,
        HorasFchCarga,
        HorasFchProc,
        Mensaje
-FROM (
-  select max(HorasMes) mes,
-         max(HorasAnio) anio
-  from siap_ces_tray.ihorasextras
-  where PerDocNum='$cedula'
-) FC
-join siap_ces_tray.ihorasextras M1
-  on HorasMes=mes
- and HorasAnio=anio
+FROM siap_ces_tray.ihorasextras M1
 WHERE PerDocNum='$cedula'
-  AND HorExtrasCant>0;
+  AND HorExtrasCant>0
+  AND (HorasAnio = year(curdate()) or month(curdate())<3 and HorasAnio = year(curdate())-1)
 
 	";
         my $sth = $dbh->prepare($SQL);
