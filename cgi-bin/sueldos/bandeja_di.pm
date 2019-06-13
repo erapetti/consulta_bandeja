@@ -44,17 +44,7 @@ SELECT perdocnum,
        group_concat(if(SitFunId>1,concat(SitFunFchDesde,' a ',SitFunFchHasta,' '),'')) Reservas,
        concat(if(CauBajCod=99,'Baja lógica ',''),if(DesFchProc is null and mensaje='','Pendiente',concat(DesFchProc,' ',left(replace(replace(replace(convert(mensaje using 'utf8'),char(34),''),char(39),''),'ERROR: ',''),60)))) mensaje,
        NroLote
-FROM (select ID1.*
-      from idesignaciones ID1
-      left join idesignaciones ID2
-        on ID2.RelLabId=ID1.RelLabId
-       and ID2.DesFchIng=ID1.DesFchIng
-       and (isnull(ID1.SitFunId) or isnull(ID2.SitFunId) or (ifnull(ID1.SitFunId,0) = ifnull(ID2.SitFunId,0)))
-       and (ifnull(ID1.SitFunId,0) in (0,1) or ID1.SitFunFchDesde=ID2.SitFunFchDesde)
-       and ID2.DesigId>ID1.DesigId
-       and ifnull(ID2.Resultado,'') in ('','OK','ERROR','PE')
-       where ID2.RelLabId is null
-) ULT
+FROM idesignaciones
 JOIN siap_ces.institucionales
   ON DesInsCod=InsCod
 LEFT JOIN siap_ces.cargos
@@ -62,6 +52,7 @@ LEFT JOIN siap_ces.cargos
 WHERE DesFchCarga>='2019-03-01'
   AND perdocnum='".$cedula."'
   AND ifnull(Resultado,'') in ('','OK','ERROR','PE')
+  AND (year(DesFchEgr) >= if(month(curdate())<3,-1,0)+year(curdate()) or ifnull(DesFchEgr,'1000-01-01')='1000-01-01')
 GROUP BY 1,2,3,4,5,6,7,10,11,CauBajCod,SitFunId
 ORDER BY 2,3,4,5,6,7,DesigId
 
