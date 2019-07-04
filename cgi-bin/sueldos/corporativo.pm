@@ -36,15 +36,18 @@ sub buscar($$) {
 	my $sth = $dbh->prepare("
 
 SELECT perdocid,
-       FuncAsignadaFchDesde,
-       FuncAsignadaFchHasta,
+       FuncAsignadaFchDesde desde,
+       FuncAsignadaFchHasta hasta,
        DependDesc,
-       group_concat(v.RelLabId separator ', '),
-       if(AsignDesc<>'',if(DenomCargoDesc<>'DOCENTE',concat(DenomCargoDesc,' ',AsignDesc),AsignDesc),if(DenomCargoDesc='DOCENTE',concat(DenomCargoDesc,':',FuncionDesc),DenomCargoDesc)),
+       ifnull(Correlativo,'') Correlativo,
+       group_concat(v.RelLabId separator ', ') RLs,
+       RelLabDesignCaracter,
+       if(AsignDesc<>'',if(DenomCargoDesc<>'DOCENTE',concat(DenomCargoDesc,' ',AsignDesc),AsignDesc),if(DenomCargoDesc='DOCENTE',concat(DenomCargoDesc,':',FuncionDesc),DenomCargoDesc)) CargoAsignatura,
        suplencias,
        RelLabCicloPago,
-       format(sum(CargaHorariaCantHoras),2)
+       format(sum(CargaHorariaCantHoras),2) horas
 FROM v_funciones_del_personal v
+LEFT JOIN PUESTOS using (PuestoId)
 
 -- suplencias, reservas de cargo, etc:
 LEFT JOIN (
@@ -78,8 +81,8 @@ LEFT JOIN (
 WHERE perdocid='".$cedula."'
   AND (FuncAsignadaFchHasta>='2019-03-01' OR FuncAsignadaFchHasta='1000-01-01')
   AND (FuncAsignadaFchDesde<=FuncAsignadaFchHasta OR FuncAsignadaFchHasta='1000-01-01')
-GROUP BY 1,2,3,4,6,7,8
-ORDER BY 2,4,6,7,3;
+GROUP BY 1,2,3,4,5,7,8,9
+ORDER BY 2,4,7,8,3;
 
 	");
 	$sth->execute();
@@ -90,7 +93,7 @@ ORDER BY 2,4,6,7,3;
 
 	$sth->finish;
 
-	return {head=>["Cédula","Desde","Hasta","Dependencia","RelLab","Cargo/Asignatura","Observaciones","Ciclo","Horas"], data=>$rows};
+	return {head=>["Cédula","Desde","Hasta","Dependencia","Correlativo","RelLab","Carácter","Cargo/Asignatura","Observaciones","Ciclo","Horas"], data=>$rows};
 }
 
 sub certificados($$) {
