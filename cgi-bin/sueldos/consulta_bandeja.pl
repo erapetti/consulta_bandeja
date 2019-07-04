@@ -56,7 +56,7 @@ my ($userid,$sessionid) = getSession(cookie(-name=>'SESION'));
 my $cedula = checkFormat(param('cedula'), '[\d .-]+');
 $cedula =~ s/[^\d]//g;
 my $opcion = checkFormat(param('opcion'), '\w+') || 'resumen';
-my $bandeja = checkFormat(param('bandeja'), '(dd|di|he|vi)');
+my $bandeja = checkFormat(param('bandeja'), '(dd|di|he|vi|mu)');
 
 my $page = Template->new(EXPOSE_BLOCKS => 1);
 my %tvars;
@@ -679,9 +679,9 @@ sub opcion_viaticos_consulta($$) {
 
 	if (defined($cedula)) {
 
-		my $multas = viaticos::buscar($dbh_siap,$cedula);
+		my $resumen = viaticos::buscar($dbh_siap,$cedula);
 
-		$rtvars->{js} = data2js($multas);
+		$rtvars->{js} = data2js($resumen);
 		$rtvars->{subtitulo} = "Datos del año actual en la bandeja para esta cédula";
 		$rtvars->{hay_resultado} = 1;
 	}
@@ -795,8 +795,15 @@ sub opcion_multas_resumen($$) {
 		$rtvars->{btn} = 'Cargar bandeja';
 		$rtvars->{btn_class} = 'btn-primary';
 		$rtvars->{modal_opcion} = 'cargar';
-		$rtvars->{bandeja} = 'he';
+		$rtvars->{bandeja} = 'mu';
 		$rtvars->{cedula} = 'Multas';
+
+		$rtvars->{data_table_options} = '
+		  drawCallback: function(settings) {
+			$(".delayed").show();
+		  },
+		';
+
 	}
 
 	return 0;
