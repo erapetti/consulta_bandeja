@@ -27,7 +27,8 @@ LEFT JOIN (
          group_concat(concat(ConDsc,': ',DesConFchDes,' a ',DesConFchHas) separator '<br>') reservas
   FROM siap_ces.designacionesconceptos dc
   JOIN siap_ces.conceptos using (ConCod)
-  WHERE dc.ConCod in (81150,81151,81154,81155,81156)
+--  WHERE dc.ConCod in (81150,81151,81154,81155,81156)
+  WHERE dc.ConCod in (81111,81113,81115,81116,81150,81151,81154,81155,81156,81152,82063,82072,82070)
     AND (dc.DesConFchHas='1000-01-01' OR year(dc.DesConFchHas)>=year(curdate()))
   GROUP BY 1,2,3
 ) R ON R.DesConEmpCod = v.EmpCod
