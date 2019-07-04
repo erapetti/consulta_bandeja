@@ -76,12 +76,17 @@ select max(MultFchCarga) `Fecha de carga`,
 FROM (select M1.*
       from imultas M1
       left join imultas M2
-        on M2.perdocnum=M1.perdocnum
+        on M2.PerDocTpo=M1.PerDocTpo
+       and M2.PerDocPaisCod=M1.PerDocPaisCod
+       and M2.PerDocNum=M1.PerDocNum
+       and M2.MultCarNum=M1.MultCarNum
+       and M2.MultInsCod=M1.MultInsCod
        and M2.MultAnio=M1.MultAnio
        and M2.MultMes=M1.MultMes
+       and M2.RubroCod=M1.RubroCod
        and M2.MultId>M1.MultId
-       and ifnull(M2.Resultado,'') in ('','OK','ERROR','PE')
        where M2.MultId is null
+         and M1.MultFchCarga >= '2019-03-01'
 ) ULT
 left join siap_ces.personas p using (perdocnum)
 WHERE resultado='ERROR'
