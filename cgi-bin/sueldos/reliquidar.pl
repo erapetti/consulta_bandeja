@@ -11,6 +11,7 @@ use periodos;
 
 sub dbConnect(;$$$) ;
 sub respuesta($;$) ;
+sub calcularHasta($) ;
 
 
 chdir '/var/www/bandeja';
@@ -19,8 +20,12 @@ my $script_bandeja_dd = "reliquidar_dd.sh";
 my $script_bandeja_di = "reliquidar_di.sh";
 my $script_bandeja_he = "reliquidar_he.sh";
 my $script_bandeja_vi = "reliquidar_vi.sh";
+my $script_bandeja_mu = "reliquidar_mu.sh";
 
-print header(-charset=>'utf-8',-type=>'application/json');
+print header(-charset=>'utf-8',-type=>'application/json'),"\n";
+
+print STDERR "headers\n";
+
 
 open(LOCKFH,$script_bandeja_dd);
 if (! flock(LOCKFH, LOCK_EX|LOCK_NB)) {
@@ -29,9 +34,8 @@ if (! flock(LOCKFH, LOCK_EX|LOCK_NB)) {
 }
 $SIG{INT} = sub { flock(LOCKFH, LOCK_UN); }; # libero el lock al salir
 
-my $nuevo_periodo = checkFormat(param('nuevo_periodo'),'on');
 my $cedula = checkFormat(param('cedula'),'\d\d\d\d\d\d\d\d');
-my $bandeja = checkFormat(param('bandeja'),'(dd|di|he|vi)');
+my $bandeja = checkFormat(param('bandeja'),'(dd|di|he|vi|mu)');
 
 if (!$bandeja) {
 	respuesta("No se recibió el parámetro 'bandeja'");
@@ -42,9 +46,12 @@ my $dbh_tray = dbConnect("siap_ces_tray");
 
 my $periodos = periodos->new($bandeja, $dbh_tray);
 
-if ($nuevo_periodo) {
-	if ($bandeja eq "dd" || $bandeja eq "he" || $bandeja eq "vi") {
-		my ($desde,$hasta,$dias) = $periodos->ultimo();
+my ($desde,$hasta);
+
+if (!$cedula) {
+	if ($bandeja eq "dd" || $bandeja eq "he" || $bandeja eq "vi" || $bandeja eq "mu") {
+		my $dias;
+		($desde,$hasta,$dias) = $periodos->ultimo();
 		if (!defined($dias)) {
 			respuesta("No se pudo obtener el período anterior");
 			exit(0);
@@ -53,22 +60,39 @@ if ($nuevo_periodo) {
 			respuesta("No se puede crear un nuevo período para la bandeja $bandeja porque el período anterior terminó hace menos de 5 días");
 			exit(0);
 		}
-		my $out = $periodos->agregar_hasta_ayer();
-		if ($out) {
-			respuesta("No se pudo crear un período nuevo", $out);
-			exit(0);
-		}
-	} else {
+		if ($bandeja ne "mu") {
+			my $err = $periodos->agregar_hasta_ayer();
+			if ($err) {
+				respuesta("No se pudo crear un período nuevo", $err);
+				exit(0);
+			}
+			($desde,$hasta) = $periodos->ultimo();
+		} else {
+			$desde = $hasta;
+			$hasta = calcularHasta($desde);
 
-		my $out = $periodos->agregar_hasta_minutos(5);
-		if ($out) {
-			respuesta("No se pudo crear un período nuevo", $out);
+			if (!$hasta) {
+				respuesta("No se pudo definir una fecha final a partir de la fecha inicial $desde");
+				exit(0);
+			}
+			if ($desde eq $hasta) {
+				respuesta("No se puede definir el período a reliquidar porque quedaría vacío");
+				exit(0);
+			}
+		}
+	} elsif ($bandeja eq "di") {
+
+		my $err = $periodos->agregar_hasta_minutos(5);
+		if ($err) {
+			respuesta("No se pudo crear un período nuevo", $err);
 			exit(0);
 		}
+		($desde,$hasta) = $periodos->ultimo();
 	}
+} else {
+	($desde,$hasta) = $periodos->minmax();
 }
 
-my ($desde,$hasta) = $cedula ? $periodos->minmax() : $periodos->ultimo();
 
 #$desde='2018-03-01';
 #$hasta='2018-05-11';
@@ -86,13 +110,24 @@ if ($bandeja eq "dd") {
 	open(CMD, "/bin/bash $script_bandeja_he --inicio '$desde' --fin '$hasta' 2>&1 |");
 } elsif ($bandeja eq "vi") {
 	open(CMD, "/bin/bash $script_bandeja_vi --inicio '$desde' --fin '$hasta' 2>&1 |");
+} elsif ($bandeja eq "mu") {
+	open(CMD, "/bin/bash $script_bandeja_mu --inicio '$desde' --fin '$hasta' 2>&1 |");
 }
-local $/ = undef;
-my $out = <CMD>;
+
+my $out;
+while (<CMD>) {
+	if (/^$/) {
+		# para evitar gateway timeout
+		print "\n";
+		print STDERR "pasa\n";
+	} else {
+		$out .= $_;
+	}
+}
 close(CMD);
 
 if ($? ne 0) {
-	respuesta("El proceso de reliquidación terminó con error ".$?, $out);
+	respuesta("El proceso de reliquidación terminó con error ".($?/256), $out);
 	exit(0);
 }
 
@@ -133,4 +168,27 @@ sub respuesta($;$) {
 		$out =~ s/"/\\"/g;
 	}
 	print '{"error":"'.$error.($out ? '","salida":"'.$out : '').'"}';
+}
+
+sub calcularHasta($) {
+	my ($desde) = @_;
+	my $hasta;
+
+	$desde =~ /^(\d\d\d\d)-(\d\d)-\d\d/ or return undef;
+
+	my ($anio,$mes) = ($1,$2);
+
+	# Calculo hasta como el día 15 del siguiente mes a desde:
+	$mes++;
+	if ($mes>12) {
+		$mes=1;
+		$anio++;
+	}
+	$hasta = sprintf "%04d-%02d-15 00:00:00", $anio, $mes;
+
+	# Como tope hasta podría ser el dia de hoy:
+	my ($sec,$min,$hour,$mday,$mon,$year) = localtime(time);
+	my $max = sprintf "%04d-%02d-%02d 00:00:00", $year+1900, $mon+1, $mday;
+
+	return ($hasta gt $max ? $max : $hasta);
 }
