@@ -64,7 +64,7 @@ LEFT JOIN (
        join RELACIONES_LABORALES RLtit using (RelLabId)
        -- join RELACIONES_LABORALES RLsupl on RLsupl.SillaId=RLtit.SillaId and RLsupl.RelLabVacantePrioridad=RLtit.RelLabVacantePrioridad+1
        join RELACIONES_LABORALES RLsupl on RLsupl.RelLabId=s.SuplRelLabId
-       where SuplCausId in (6,7,15,16,17,20,39,43,162,42)
+       where SuplCausId in (6,7,15,16,17,20,39,43,162,42,40)
          and (RLsupl.RelLabVacanteFchPubDesde is null
               or RLsupl.RelLabCeseFchReal is null
               or date(RLsupl.RelLabVacanteFchPubDesde)<=date(RLsupl.RelLabCeseFchReal)
