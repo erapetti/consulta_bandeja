@@ -39,13 +39,13 @@ SELECT perdocid,
        FuncAsignadaFchDesde desde,
        FuncAsignadaFchHasta hasta,
        DependDesc,
-       ifnull(Correlativo,'') Correlativo,
+       if(RelLabDesignCaracter='S','',ifnull(Correlativo,'')) Correlativo,
        group_concat(v.RelLabId separator ', ') RLs,
        RelLabDesignCaracter,
        if(AsignDesc<>'',if(DenomCargoDesc<>'DOCENTE',concat(DenomCargoDesc,' ',AsignDesc),AsignDesc),if(DenomCargoDesc='DOCENTE',concat(DenomCargoDesc,':',FuncionDesc),DenomCargoDesc)) CargoAsignatura,
        suplencias,
        RelLabCicloPago,
-       format(sum(CargaHorariaCantHoras),2) horas
+       format(sum(FuncRelLabCantHrs),2) horas
 FROM v_funciones_del_personal v
 LEFT JOIN PUESTOS using (PuestoId)
 
