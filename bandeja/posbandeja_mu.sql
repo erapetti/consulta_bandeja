@@ -36,3 +36,15 @@ WHERE m1.Resultado='PE'
        m1.MultCantHor<0 AND m1.MultCantHor=-m2.MultCantHor
       )
 ;
+
+-- marco como error los que están excedidos
+UPDATE imultas
+JOIN (select perdocnum
+      from imultas
+      where resultado='PE'
+      group by perdocnum having sum(multcantdias)+sum(multcanthor)/8 > 22*2
+     )X using (perdocnum)
+SET resultado='ERROR',mensaje='Exceso de horas'
+WHERE resultado='PE'
+;
+
