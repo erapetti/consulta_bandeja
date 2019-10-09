@@ -50,16 +50,8 @@ then
 fi
 
 
-# Credenciales del host de CES:
-HOST=sdb690-05.ces.edu.uy
-USER=bandejaia
-PASS=`echo -n cW41ZU1FbERzdksvT29JeXNTR0lRa1ds | base64 -d`
-
-# Credenciales del host de SIAP:
-HOSTSIAP=sdb690-07.ces.edu.uy
-USERSIAP=bandejaia
-PASSSIAP=`echo -n cW41ZU1FbERzdksvT29JeXNTR0lRa1ds | base64 -d`
-
+# Cargo HOST, USER, PASS, HOSTSIAP, USERSIAP, PASSSIAP
+source credenciales.sh
 
 PREBANDEJA=prebandeja_ia.sql
 BANDEJA=bandeja_ia.sql
@@ -82,6 +74,7 @@ $OUT" | sed 's/\t/:/g'
 	exit 7
 fi
 
+
 SQL1='
 use siap_ces_tray;
 CREATE TEMPORARY TABLE `ivariablestmp` (
@@ -89,10 +82,10 @@ CREATE TEMPORARY TABLE `ivariablestmp` (
   `PerDocPaisCod` char(2) DEFAULT NULL,
   `PerDocNum` char(16) DEFAULT NULL,
   `VarCarNum` int(11) DEFAULT NULL,
-  `RubroCod` char(16) DEFAULT NULL,
+  `VarConNum` char(16) DEFAULT NULL,
   `VarAnio` char(4) DEFAULT NULL,
   `VarMes` char(2) DEFAULT NULL,
-  `VarMonto` decimal(7,2) DEFAULT "0.00"
+  `VarImporte` decimal(7,2) DEFAULT "0.00"
 )
 '
 
@@ -105,14 +98,16 @@ concat(char(34),PerDocTpo,char(34)),",",
 concat(char(34),PerDocPaisCod,char(34)),",",
 concat(char(34),PerDocNum,char(34)),",",
 VarCarNum,",",
-concat(char(34),RubroCod,char(34)),",",
+concat(char(34),VarConNum,char(34)),",",
 concat(char(34),VarAnio,char(34)),",",
 concat(char(34),VarMes,char(34)),",",
-VarMonto,",",
+VarImporte,",",
 concat(char(34),"PE",char(34)),",",
 concat(char(34),char(34)),",",
 concat(char(34),curdate(),char(34)),",",
-concat(char(34),"IRPF-ABONOS",char(34)),
+concat(char(34),"IRPF-ABONOS",char(34)),",",
+concat(char(34),VarAnio,char(34)),",",
+concat(char(34),VarMes,char(34)),
 "),"
 from siap_ces_tray.ivariablestmp
 '
@@ -130,6 +125,7 @@ $SQL1;
 $SQL2;
 $SQL3;
 $SQL4;
+$SQL5;
 commit;" | $MYSQL Personal 2>&1`
 
 err=$?
@@ -157,9 +153,9 @@ RESULTADO=`echo "$RESULTADO" | sed 's/mysql.*Using a password on the command lin
 RESULTADO=`echo "$RESULTADO" | perl -e 'local $/=undef; $_=<>; s/,[\s\n\r]*$//s; print'`
 
 echo "start transaction;
-insert into ivariables (PerDocTpo,PerDocPaisCod,PerDocNum,VarCarNum,RubroCod,VarAnio,VarMes,VarMonto,Resultado,Mensaje,VarFchCarga,VarTipo) values
+insert into ivariables (PerDocTpo,PerDocPaisCod,PerDocNum,VarCarNum,VarConNum,VarAnio,VarMes,VarImporte,Resultado,Mensaje,VarFchCarga,VarTipoVariable,VarAnioRel,VarMesRel) values
 $RESULTADO;
--- insert into periodos (bandeja,desde,hasta) values ('ia','$DESDE','$HASTA');
+insert into periodos (bandeja,desde,hasta) values ('ia','$DESDE','$HASTA');
 commit;" | mysql -h "$HOSTSIAP" -u "$USERSIAP" "-p$PASSSIAP" siap_ces_tray 2>&1 | grep -v "Using a password on the command line"
 
 exit 0

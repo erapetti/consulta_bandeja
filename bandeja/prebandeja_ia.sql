@@ -9,5 +9,5 @@ select concat('ya existe una liquidación para ',@anio,'-',@mes) causal,count(*)
 from ivariables
 where VarAnio=@anio
   and VarMes=@mes
-  and VarTipo='IRPF ABONOS'
+  and VarTipoVariable='IRPF-ABONOS'
 ;
