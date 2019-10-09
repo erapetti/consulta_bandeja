@@ -49,19 +49,11 @@ then
 	exit 5
 fi
 
-# Credenciales del host de CES:
-HOST=sdb690-05.ces.edu.uy
-USER=bandejadi
-PASS=`echo -n dDlmUkk1QUQzZXJIWUQ2dXR6M0JrNlNy | base64 -d`
-
-# Credenciales del host de SIAP:
-HOSTSIAP=sdb690-07.ces.edu.uy
-USERSIAP=bandejadi
-PASSSIAP=`echo -n dDlmUkk1QUQzZXJIWUQ2dXR6M0JrNlNy | base64 -d`
-
+# Cargo HOST, USER, PASS, HOSTSIAP, USERSIAP, PASSSIAP
+source credenciales.sh
 
 PREBANDEJA=prebandeja_di.sql
-BANDEJA=bandeja2-v2.00.04-20190405.sql
+BANDEJA=bandeja2-v2.02.01-20190924.sql
 POSBANDEJA=bandeja3-v1.20.02-20190322.sql
 
 MYSQL="mysql -h $HOST -u $USER -p$PASS --batch --skip-column-names"
