@@ -21,15 +21,15 @@ select 'DO' PerDocTpo,
        'UY' PerDocPaisCod,
        perdocid PerDocNum,
        carnum VarCarNum,
-       RubroCod,
+       VarConNum,
        @anio VarAnio,
-       @mes VarMes,
-       signo*@diaria*dias VarMonto
+       @mes+0 VarMes,
+       signo*@diaria*dias VarImporte
 from
  -- los rubros: uno va con el monto positivo y el otro con el mismo monto negativo porque se tienen que netear en cero
- (select 740016 RubroCod,1 signo
+ (select 740016 VarConNum,1 signo
   union
-  select 740017 RubroCod,-1 signo
+  select 740017 VarConNum,-1 signo
  ) Rubros
 
 join
@@ -91,7 +91,7 @@ left join
     and mes=@mes
   group by 1
  ) SIAP using (perdocid)
-group by PerDocTpo,PerDocPaisCod,PerDocNum,VarCarNum,RubroCod,VarAnio,VarMes,VarMonto
+group by PerDocTpo,PerDocPaisCod,PerDocNum,VarCarNum,VarConNum,VarAnio,VarMes,VarImporte
 ;
 
 ROLLBACK;
