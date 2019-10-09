@@ -61,7 +61,7 @@ PASSSIAP=`echo -n T0ZOZTJaNWlYZzlSV2N0USs1d3IzeVBB | base64 -d`
 
 
 PREBANDEJA=prebandejaVI-v1.0.0-20190413.sql
-BANDEJA=bandejaVI-v1.0.3-20190604.sql
+BANDEJA=bandejaVI-v1.0.4-20190802.sql
 POSBANDEJA=posbandejaVI-v1.0.0-20190413.sql
 
 MYSQL="mysql -h $HOST -u $USER -p$PASS --batch --skip-column-names"
