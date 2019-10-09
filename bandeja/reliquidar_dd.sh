@@ -53,17 +53,8 @@ then
 	exit 5
 fi
 
-
-# Credenciales del host de CES:
-HOST=sdb690-05.ces.edu.uy
-USER=bandeja_dd
-PASS=`echo -n b0syK2FRTXErb3ZxTTBweHRidDlwSHFGUVQ5OUxxa01idWsxamIrRDk5RT0= | base64 -d`
-
-# Credenciales del host de SIAP:
-HOSTSIAP=sdb690-07.ces.edu.uy
-USERSIAP=bandeja_dd
-PASSSIAP=`echo -n b0syK2FRTXErb3ZxTTBweHRidDlwSHFGUVQ5OUxxa01idWsxamIrRDk5RT0= | base64 -d`
-
+# Cargo HOST, USER, PASS, HOSTSIAP, USERSIAP, PASSSIAP
+source credenciales.sh
 
 PREBANDEJA=prebandejadd-v1.0.0-20190415.sql
 BANDEJA=bj-9.0.6.py
