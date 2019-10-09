@@ -49,23 +49,23 @@ then
 	exit 5
 fi
 
-
-# Credenciales del host de CES:
-HOST=sdb690-05.ces.edu.uy
-USER=bandejamu
-PASS=`echo -n T0ZOZTJaNWlYZzlSV2N0USs1d3IzeVBB | base64 -d`
-
-# Credenciales del host de SIAP:
-HOSTSIAP=sdb690-07.ces.edu.uy
-USERSIAP=bandejamu
-PASSSIAP=`echo -n T0ZOZTJaNWlYZzlSV2N0USs1d3IzeVBB | base64 -d`
-
+# Cargo HOST, USER, PASS, HOSTSIAP, USERSIAP, PASSSIAP
+source credenciales.sh
 
 PREBANDEJA=prebandeja_mu.sql
 BANDEJA_ADM=bandeja_mu_ADM.sql
 BANDEJA_DHF=bandeja_mu_DHF.sql
 BANDEJA_DOC=bandeja_mu_DOC.sql
 POSBANDEJA=posbandeja_mu.sql
+
+# Determino el modo de funcionamiento en base al día de hoy
+MODO=TODO
+CODBANDEJA=mu
+if [ `date +%d` -le 9 ]
+then
+	MODO=DEVOLUCION
+	CODBANDEJA=md
+fi
 
 MYSQL="mysql -h $HOST -u $USER -p$PASS --batch --skip-column-names"
 
@@ -106,11 +106,11 @@ CREATE TEMPORARY TABLE `imultastmp` (
 )
 '
 
-SQL2="set @desdeBandeja='$DESDE'; set @hastaBandeja='$HASTA';"
+SQL2="set @desdeBandeja='$DESDE'; set @hastaBandeja='$HASTA'; set @modo='$MODO';"
 
-SQL3="use Personal;"`cat "$BANDEJA_ADM" | perl -ne 's/(start transaction|rollback|commit|set\s+\@desdeBandeja[^;]+|set\s+\@hastabandeja[^;]+|set\s+\@perid[^;]+)\s*;//ig;print'`
-SQL4="use Personal;"`cat "$BANDEJA_DHF" | perl -ne 's/(start transaction|rollback|commit|set\s+\@desdeBandeja[^;]+|set\s+\@hastabandeja[^;]+|set\s+\@perid[^;]+)\s*;//ig;print'`
-SQL5="use Personal;"`cat "$BANDEJA_DOC" | perl -ne 's/(start transaction|rollback|commit|set\s+\@desdeBandeja[^;]+|set\s+\@hastabandeja[^;]+|set\s+\@perid[^;]+)\s*;//ig;print'`
+SQL3="use Personal;"`cat "$BANDEJA_ADM" | perl -ne 's/(start transaction|rollback|commit|set\s+\@desdeBandeja[^;]+|set\s+\@hastabandeja[^;]+|set\s+\@perid[^;]+|set\s+\@modo[^;]+)\s*;//ig;print'`
+SQL4="use Personal;"`cat "$BANDEJA_DHF" | perl -ne 's/(start transaction|rollback|commit|set\s+\@desdeBandeja[^;]+|set\s+\@hastabandeja[^;]+|set\s+\@perid[^;]+|set\s+\@modo[^;]+)\s*;//ig;print'`
+SQL5="use Personal;"`cat "$BANDEJA_DOC" | perl -ne 's/(start transaction|rollback|commit|set\s+\@desdeBandeja[^;]+|set\s+\@hastabandeja[^;]+|set\s+\@perid[^;]+|set\s+\@modo[^;]+)\s*;//ig;print'`
 
 SQL7='select "(",
 concat(char(34),PerDocTpo,char(34)),",",
@@ -173,6 +173,7 @@ fi
 echo
 date 1>&2
 
+
 # Bandeja DHF
 
 # Corro las sentencias en el servidor MySQL del Corporativo
@@ -201,6 +202,7 @@ fi
 # para evitar Gateway timeout
 echo
 date 1>&2
+
 
 # Bandeja DOC
 
@@ -242,7 +244,7 @@ $SQL2;
 insert into imultas (PerDocTpo,PerDocPaisCod,PerDocNum,MultCarNum,RubroCod,MultAnio,MultMes,MultCic,MultCar,MultInsCod,MultAsiCod,MultCantDias,MultCantHor,MultCantMin,Resultado,Mensaje,MultFchCarga,InasisLicId,InasisLicId_Orig) values
 $RESULTADO;
 $SQL8;
-insert into periodos (bandeja,desde,hasta) values ('mu','$DESDE','$HASTA');
+insert into periodos (bandeja,desde,hasta) values ('$CODBANDEJA','$DESDE','$HASTA');
 commit;" | mysql -h "$HOSTSIAP" -u "$USERSIAP" "-p$PASSSIAP" siap_ces_tray 2>&1 | grep -v "Using a password on the command line"
 
 exit 0
