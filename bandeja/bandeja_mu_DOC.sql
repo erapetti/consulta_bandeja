@@ -1,6 +1,6 @@
 START TRANSACTION;
 
--- set @desdeBandeja='2019-04-01'; set @hastaBandeja='2019-05-01';
+-- set @desdeBandeja='2019-04-01'; set @hastaBandeja='2019-05-01'; set @modo='TODO';
 
 use Personal;
 
@@ -17,28 +17,33 @@ JOIN FUNCIONES_ASIGNADAS USING (FuncAsignadaId)
 JOIN SILLAS USING (SillaId)
 JOIN multas_cierre m ON m.DependId=SillaDependId AND m.anio=year(InasisLicFchIni) AND m.mes=month(InasisLicFchIni)
 SET InasisLicFecEnvio=curdate(),InasisLicEstado='X'
-WHERE InasisLicFecha >= @desdeBandeja
-  AND InasisLicFecha < @hastaBandeja
+WHERE InasisLicEstado in ('P','R')
   AND InasisLicFchIni = InasisLicFchFin
-  AND InasisLicEstado in ('P','R')
   AND InasisLicTipo='DD'
   AND InasCausDescuento<>0
   AND InasCausId<>'ATD'
   AND InasCausTipo='I'
+  AND (@modo='TODO' OR InasisLicTipoMov='E')
+  AND (InasisLicFchIni>date_sub(curdate(),interval 5 month))
 ;
+
+set @desde=(select min(InasisLicFchIni) from INASISLIC where InasisLicEstado='X');
+set @hasta=(select max(InasisLicFchIni) from INASISLIC where InasisLicEstado='X');
+
 
 -- Marco como rebotados los que no encuentro en la tabla as400
 UPDATE INASISLIC
 JOIN FUNCIONES_ASIGNADAS USING (FuncAsignadaId)
-JOIN SILLAS USING (SillaId)
-JOIN Personas.PERSONASDOCUMENTOS ON personalperid=perid AND paiscod='UY' AND doccod='CI'
-LEFT JOIN FUNCIONES_RELACION_LABORAL USING (FuncAsignadaId)
-LEFT JOIN RELACIONES_LABORALES RL USING (RelLabId,PersonalPerId,SillaId)
+LEFT JOIN FUNCIONES_RELACION_LABORAL FRL USING (FuncAsignadaId)
+LEFT JOIN RELACIONES_LABORALES RL USING (RelLabId,PersonalPerId)
+LEFT JOIN SILLAS SRL ON SRL.SillaId=RL.SillaId
+LEFT JOIN Personas.PERSONASDOCUMENTOS ON perid=personalperid AND paiscod='UY' AND doccod='CI'
 LEFT JOIN (
            select DependId,cedula,anio,mes,Ciccod
            from as400
-           where anio>=year(@desdeBandeja)
-             and anio<=year(@hastaBandeja)
+           where (anio=year(@desde) and mes>=month(@desde)
+                  or anio>year(@desde)
+                 )
              and tipo=3
            group by 1,2,3,4,5
 ) a on a.DependId=SillaDependId and a.cedula=cast(perdocid as unsigned) and a.anio=year(InasisLicFchIni) and a.mes=month(InasisLicFchIni) and a.CicCod=if(InasisLicCicloPago is not null,InasisLicCicloPago,RelLabCicloPago)
@@ -103,29 +108,30 @@ FROM
       FROM Personal.INASISLIC
       JOIN Personal.INASCAUSALES USING (InasCausId)
       JOIN Personal.FUNCIONES_ASIGNADAS USING (FuncAsignadaId)
-      JOIN Personal.SILLAS USING (SillaId)
       JOIN Personal.CARGAS_HORARIAS USING (CargaHorariaId)
       JOIN Personas.PERSONASDOCUMENTOS ON personalperid=perid AND paiscod='UY' AND doccod='CI'
-      LEFT JOIN Personal.FUNCIONES_RELACION_LABORAL USING (FuncAsignadaId)
-      LEFT JOIN Personal.RELACIONES_LABORALES RL USING (RelLabId,PersonalPerId)
-      LEFT JOIN (
+      JOIN Personal.FUNCIONES_RELACION_LABORAL USING (FuncAsignadaId)
+      JOIN Personal.RELACIONES_LABORALES RL USING (RelLabId,PersonalPerId)
+      JOIN Personal.SILLAS SRL ON SRL.SillaId=RL.SillaId
+      JOIN (
            select DependId,cedula,anio,mes,Ciccod,ANY_VALUE(InsCod) InsCod,ANY_VALUE(CarNum) CarNum,ANY_VALUE(AsiCod) AsiCod,ANY_VALUE(Caracter) Caracter
            from Personal.as400
-           where anio>=year(@desdeBandeja)
-             and anio<=year(@hastaBandeja)
+           where (anio=year(@desde) and mes>=month(@desde)
+                  or anio>year(@desde)
+                 )
              and tipo=3
            group by 1,2,3,4,5
       ) a on a.DependId=SillaDependId and a.cedula=cast(perdocid as unsigned) and a.anio=year(InasisLicFchIni) and a.mes=month(InasisLicFchIni) and a.CicCod=if(InasisLicCicloPago is not null,InasisLicCicloPago,RelLabCicloPago)
       WHERE InasisLicEstado='X'
+        AND CargaHorariaCantHoras>0
       GROUP BY 1,2,3,4,5,6,7,8,9,10,11,12,13,14
       ) I
    LEFT JOIN (
             SELECT LiceoPlanDependId DependId
             FROM Estudiantil.LICEOPLANTURNO_HORARIOS
             WHERE HorarioDiaSemana='SAB'
-              AND (HorarioFchHasta IS NULL OR HorarioFchHasta >= @desdeBandeja)
-              AND (HorarioFchDesde IS NULL OR HorarioFchDesde < @hastaBandeja)
-
+              AND (HorarioFchHasta IS NULL OR HorarioFchHasta >= @desde)
+              AND (HorarioFchDesde IS NULL OR HorarioFchDesde <= @hasta)
             GROUP BY 1
    ) SABADO USING (DependId)
 
