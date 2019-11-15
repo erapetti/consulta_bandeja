@@ -15,7 +15,7 @@ sub resumen($) {
 
 	my $sth = portal3::dbGet($dbh, "siap_ces_tray.idesignaciones",
 			["DesFchCarga","count(distinct perdocnum) Personas","count(*) Registros"],
-			"EmpCod=1 and DesFchProc is null and DesFchCarga is not null",
+			"EmpCod=1 and DesFchProc is null and DesFchCarga is not null and resultado='PE'",
 			"group by 1 order by 1"
 	               );
 
@@ -40,7 +40,7 @@ SELECT perdocnum,
        RelLabId RelLabId,
        CarDsc Cargo,
        CarNum CarNum,
-       sum(CarRegHor) Horas,
+       round(if(sum(DesRegHor)>0,sum(DesRegHor),sum(CarRegHor)),0) Horas,
        group_concat(if(SitFunId>1,concat(SitFunFchDesde,' a ',SitFunFchHasta,' '),'')) Reservas,
        concat(if(CauBajCod=99,'Baja lógica ',''),if(DesFchProc is null and mensaje='','Pendiente',concat(DesFchProc,' ',left(replace(replace(replace(convert(mensaje using 'utf8'),char(34),''),char(39),''),'ERROR: ',''),60)))) mensaje,
        NroLote
