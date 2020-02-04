@@ -11,7 +11,8 @@ use periodos;
 
 sub dbConnect(;$$$) ;
 sub respuesta($;$) ;
-sub calcularHasta($) ;
+sub calcularHastaDia15($) ;
+sub calcularHastaHaceMinutos($) ;
 
 
 chdir '/var/www/bandeja';
@@ -21,6 +22,7 @@ my $script_bandeja_di = "reliquidar_di.sh";
 my $script_bandeja_he = "reliquidar_he.sh";
 my $script_bandeja_vi = "reliquidar_vi.sh";
 my $script_bandeja_mu = "reliquidar_mu.sh";
+my $script_bandeja_ia = "reliquidar_ia.sh";
 
 print header(-charset=>'utf-8',-type=>'application/json'),"\n";
 
@@ -35,7 +37,7 @@ if (! flock(LOCKFH, LOCK_EX|LOCK_NB)) {
 $SIG{INT} = sub { flock(LOCKFH, LOCK_UN); }; # libero el lock al salir
 
 my $cedula = checkFormat(param('cedula'),'\d\d\d\d\d\d\d\d');
-my $bandeja = checkFormat(param('bandeja'),'(dd|di|he|vi|mu)');
+my $bandeja = checkFormat(param('bandeja'),'(dd|di|he|vi|mu|ia)');
 
 if (!$bandeja) {
 	respuesta("No se recibió el parámetro 'bandeja'");
@@ -49,7 +51,7 @@ my $periodos = periodos->new($bandeja, $dbh_tray);
 my ($desde,$hasta);
 
 if (!$cedula) {
-	if ($bandeja eq "dd" || $bandeja eq "he" || $bandeja eq "vi" || $bandeja eq "mu") {
+	if ($bandeja eq "dd" || $bandeja eq "he" || $bandeja eq "vi" || $bandeja eq "mu" || $bandeja eq "ia") {
 		my $dias;
 		($desde,$hasta,$dias) = $periodos->ultimo();
 		if (!defined($dias)) {
@@ -60,7 +62,7 @@ if (!$cedula) {
 			respuesta("No se puede crear un nuevo período para la bandeja $bandeja porque el período anterior terminó hace menos de 5 días");
 			exit(0);
 		}
-		if ($bandeja ne "mu") {
+		if ($bandeja eq "he" || $bandeja eq "vi") {
 			my $err = $periodos->agregar_hasta_ayer();
 			if ($err) {
 				respuesta("No se pudo crear un período nuevo", $err);
@@ -69,7 +71,7 @@ if (!$cedula) {
 			($desde,$hasta) = $periodos->ultimo();
 		} else {
 			$desde = $hasta;
-			$hasta = calcularHasta($desde);
+			$hasta = calcularHastaDia15($desde);
 
 			if (!$hasta) {
 				respuesta("No se pudo definir una fecha final a partir de la fecha inicial $desde");
@@ -82,12 +84,10 @@ if (!$cedula) {
 		}
 	} elsif ($bandeja eq "di") {
 
-		my $err = $periodos->agregar_hasta_minutos(5);
-		if ($err) {
-			respuesta("No se pudo crear un período nuevo", $err);
-			exit(0);
-		}
 		($desde,$hasta) = $periodos->ultimo();
+
+		$desde = $hasta;
+		$hasta = calcularHastaHaceMinutos(5);
 	}
 } else {
 	($desde,$hasta) = $periodos->minmax();
@@ -98,20 +98,30 @@ if (!$cedula) {
 #$hasta='2018-05-11';
 #$cedula='38152988';
 
-$desde =~ s/ 00:00:00$//;
-$hasta =~ s/ 00:00:00$//;
 
 if ($bandeja eq "dd") {
+	$desde =~ s/ 00:00:00$//;
+	$hasta =~ s/ 00:00:00$//;
 	open(CMD, "/bin/bash $script_bandeja_dd --inicio '$desde' --fin '$hasta' ".($cedula ? "--ci '$cedula'" :"")." 2>&1 |");
 
 } elsif ($bandeja eq "di") {
 	open(CMD, "/bin/bash $script_bandeja_di --inicio '$desde' --fin '$hasta' 2>&1 |");
 } elsif ($bandeja eq "he") {
+	$desde =~ s/ 00:00:00$//;
+	$hasta =~ s/ 00:00:00$//;
 	open(CMD, "/bin/bash $script_bandeja_he --inicio '$desde' --fin '$hasta' 2>&1 |");
 } elsif ($bandeja eq "vi") {
+	$desde =~ s/ 00:00:00$//;
+	$hasta =~ s/ 00:00:00$//;
 	open(CMD, "/bin/bash $script_bandeja_vi --inicio '$desde' --fin '$hasta' 2>&1 |");
 } elsif ($bandeja eq "mu") {
+	$desde =~ s/ 00:00:00$//;
+	$hasta =~ s/ 00:00:00$//;
 	open(CMD, "/bin/bash $script_bandeja_mu --inicio '$desde' --fin '$hasta' 2>&1 |");
+} elsif ($bandeja eq "ia") {
+	$desde =~ s/ 00:00:00$//;
+	$hasta =~ s/ 00:00:00$//;
+	open(CMD, "/bin/bash $script_bandeja_ia --inicio '$desde' --fin '$hasta' 2>&1 |");
 }
 
 my $out;
@@ -170,7 +180,7 @@ sub respuesta($;$) {
 	print '{"error":"'.$error.($out ? '","salida":"'.$out : '').'"}';
 }
 
-sub calcularHasta($) {
+sub calcularHastaDia15($) {
 	my ($desde) = @_;
 	my $hasta;
 
@@ -191,4 +201,12 @@ sub calcularHasta($) {
 	my $max = sprintf "%04d-%02d-%02d 00:00:00", $year+1900, $mon+1, $mday;
 
 	return ($hasta gt $max ? $max : $hasta);
+}
+
+sub calcularHastaHaceMinutos($) {
+	my ($minutos) = @_;
+
+	my ($sec,$min,$hour,$mday,$mon,$year) = localtime(time() - $minutos * 60);
+
+	return sprintf "%04d-%02d-%02d %02d:%02d:%02d", $year+1900, $mon+1, $mday, $hour, $min, $sec;
 }
