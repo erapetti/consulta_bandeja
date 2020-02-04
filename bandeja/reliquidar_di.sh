@@ -214,6 +214,9 @@ then
 	exit 9
 fi
 
-echo "$RESULTADO" | mysql -h "$HOSTSIAP" -u "$USERSIAP" "-p$PASSSIAP" siap_ces_tray 2>&1 | grep -v "Using a password on the command line"
+echo "start transaction;
+$RESULTADO
+insert into periodos (bandeja,desde,hasta) values ('di','$DESDE','$HASTA');
+commit;" | mysql -h "$HOSTSIAP" -u "$USERSIAP" "-p$PASSSIAP" siap_ces_tray 2>&1 | grep -v "Using a password on the command line"
 
 exit 0
