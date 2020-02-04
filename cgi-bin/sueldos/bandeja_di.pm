@@ -41,7 +41,7 @@ SELECT perdocnum,
        CarDsc Cargo,
        CarNum CarNum,
        round(if(sum(DesRegHor)>0,sum(DesRegHor),sum(CarRegHor)),0) Horas,
-       group_concat(if(SitFunId>1,concat(SitFunFchDesde,' a ',SitFunFchHasta,' '),'')) Reservas,
+       group_concat(if(SitFunId>1 and SitFunId<>8,concat(SitFunFchDesde,' a ',SitFunFchHasta,' '),'')) Reservas,
        concat(if(CauBajCod=99,'Baja lógica ',''),if(DesFchProc is null and mensaje='','Pendiente',concat(DesFchProc,' ',left(replace(replace(replace(convert(mensaje using 'utf8'),char(34),''),char(39),''),'ERROR: ',''),60)))) mensaje,
        NroLote
 FROM idesignaciones

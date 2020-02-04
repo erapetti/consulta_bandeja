@@ -19,6 +19,7 @@ use bandeja_di;
 use horasextras;
 use viaticos;
 use multas;
+use irpfabonos;
 use siap;
 
 sub dbConnect(;$$$) ;
@@ -51,17 +52,17 @@ sub ajax_borrar($$) ;
 sub ajax_reliquidar($$) ;
 sub ajax_cargar($$) ;
 
-my ($userid,$sessionid) = getSession(cookie(-name=>'SESION'));
+my ($userid,$sessionid) = ('u19724241',''); #getSession(cookie(-name=>'SESION'));
 
 my $cedula = checkFormat(param('cedula'), '[\d .-]+');
 $cedula =~ s/[^\d]//g;
-my $opcion = checkFormat(param('opcion'), '\w+') || 'resumen';
-my $bandeja = checkFormat(param('bandeja'), '(dd|di|he|vi|mu)');
+my $modulo = checkFormat(param('modulo'), '[\wáéíóúÁÉÍÓÚñÑüÜ ]+') || 'Corporativo';
+my $opcion = checkFormat(param('opcion'), '\w+');
+my $bandeja = checkFormat(param('bandeja'), '(dd|di|he|vi|mu|ia)');
 
 my $page = Template->new(EXPOSE_BLOCKS => 1);
 my %tvars;
 
-$tvars{opcion} = $opcion;
 $tvars{admin} = ($0 =~ /consulta_bandeja_admin.pl$/);
 $tvars{bandeja} = $bandeja;
 
@@ -112,6 +113,12 @@ my @opciones = (
 		{opcion=>'erroresMU', titulo=>'Errores', icono=>'fas fa-times-circle', funcion=>\&opcion_multas_errores},
 		{opcion=>'periodosMU', titulo=>'Períodos', icono=>'far fa-calendar-alt', funcion=>\&opcion_multas_periodos},
 	]},
+	{titulo=>'Bandeja de IRPF Abonos', items=> [
+		{opcion=>'consultaIA', titulo=>'Consulta', icono=>'fas fa-search', funcion=>\&opcion_irpfabonos_consulta},
+		{opcion=>'resumenIA', titulo=>'Pendientes', icono=>'fas fa-circle', funcion=>\&opcion_irpfabonos_resumen},
+		{opcion=>'erroresIA', titulo=>'Errores', icono=>'fas fa-times-circle', funcion=>\&opcion_irpfabonos_errores},
+		{opcion=>'periodosIA', titulo=>'Períodos', icono=>'far fa-calendar-alt', funcion=>\&opcion_irpfabonos_periodos},
+	]},
 	{titulo=>'SIAP', items=> [
 		{opcion=>'siap', titulo=>'Consulta', icono=>'fas fa-search', funcion=>\&opcion_siap_consulta},
 		{opcion=>'procesos', titulo=>'Procesos', icono=>'fas fa-tasks', funcion=>\&opcion_siap_procesos},
@@ -130,13 +137,26 @@ my %param = (
 
 my $err;
 
+$tvars{items} = [];
+if ($modulo && !$opcion) {
+	# selecciono la primer opción del módulo pedido por parámetro
+	foreach my $dir (@opciones) {
+		if ($dir->{titulo} eq $modulo) {
+			$opcion = $dir->{items}[0]->{opcion};
+			last;
+		}
+	}
+}
+
 if ($opcion) {
 	# Busco la configuración de la opción que vino por parámetro
 	my $opc;
 	foreach my $dir (@opciones) {
 		foreach my $item (@{$dir->{items}}) {
 			if ($item->{opcion} eq $opcion) {
+				$tvars{items} = $dir->{items};
 				$opc = $item;
+				$modulo = $dir->{titulo};
 				last;
 			}
 		}
@@ -146,6 +166,8 @@ if ($opcion) {
 	}
 }
 
+$tvars{modulo} = $modulo;
+$tvars{opcion} = $opcion;
 $tvars{opciones} = \@opciones;
 
 if (!$err) {
@@ -476,11 +498,13 @@ sub opcion_bandejadd_periodos($$) {
 
 	my $periodos = periodos->new("dd",$dbh_siap);
 
-	my $listado = $periodos->listado();
+	if ($periodos) {
+		my $listado = $periodos->listado();
 
-	$rtvars->{js} = data2js($listado);
-	$rtvars->{titulo} = "Períodos de liquidación";
-	$rtvars->{hay_resultado} = 1;
+		$rtvars->{js} = data2js($listado);
+		$rtvars->{titulo} = "Períodos de liquidación";
+		$rtvars->{hay_resultado} = 1;
+	}
 
 	return 0;
 }
@@ -573,11 +597,13 @@ sub opcion_bandejadi_periodos($$) {
 
 	my $periodos = periodos->new("di",$dbh_siap);
 
-	my $listado = $periodos->listado();
+	if ($periodos) {
+		my $listado = $periodos->listado();
 
-	$rtvars->{js} = data2js($listado);
-	$rtvars->{titulo} = "Períodos de liquidación";
-	$rtvars->{hay_resultado} = 1;
+		$rtvars->{js} = data2js($listado);
+		$rtvars->{titulo} = "Períodos de liquidación";
+		$rtvars->{hay_resultado} = 1;
+	}
 
 	return 0;
 }
@@ -662,11 +688,13 @@ sub opcion_horasextras_periodos($$) {
 
 	my $periodos = periodos->new("he",$dbh_siap);
 
-	my $listado = $periodos->listado();
+	if ($periodos) {
+		my $listado = $periodos->listado();
 
-	$rtvars->{js} = data2js($listado);
-	$rtvars->{titulo} = "Períodos de liquidación";
-	$rtvars->{hay_resultado} = 1;
+		$rtvars->{js} = data2js($listado);
+		$rtvars->{titulo} = "Períodos de liquidación";
+		$rtvars->{hay_resultado} = 1;
+	}
 
 	return 0;
 }
@@ -750,11 +778,13 @@ sub opcion_viaticos_periodos($$) {
 
 	my $periodos = periodos->new("vi",$dbh_siap);
 
-	my $listado = $periodos->listado();
+	if ($periodos) {
+		my $listado = $periodos->listado();
 
-	$rtvars->{js} = data2js($listado);
-	$rtvars->{titulo} = "Períodos de liquidación";
-	$rtvars->{hay_resultado} = 1;
+		$rtvars->{js} = data2js($listado);
+		$rtvars->{titulo} = "Períodos de liquidación";
+		$rtvars->{hay_resultado} = 1;
+	}
 
 	return 0;
 }
@@ -846,11 +876,112 @@ sub opcion_multas_periodos($$) {
 
 	my $periodos = periodos->new("mu",$dbh_siap);
 
-	my $listado = $periodos->listado();
+	if ($periodos) {
+		my $listado = $periodos->listado();
 
-	$rtvars->{js} = data2js($listado);
-	$rtvars->{titulo} = "Períodos de liquidación";
+		$rtvars->{js} = data2js($listado);
+		$rtvars->{titulo} = "Períodos de liquidación";
+		$rtvars->{hay_resultado} = 1;
+	}
+
+	return 0;
+}
+
+
+sub opcion_irpfabonos_consulta($$) {
+	my ($rparam, $rtvars) = @_;
+
+	my $dbh_siap = $rparam->{dbh_siap};
+	my $cedula = $rparam->{cedula};
+
+	if (defined($cedula)) {
+
+		my $irpfabonos = irpfabonos::buscar($dbh_siap,$cedula);
+
+		$rtvars->{js} = data2js($irpfabonos);
+		$rtvars->{subtitulo} = "Datos del año actual en la bandeja para esta cédula";
+		$rtvars->{hay_resultado} = 1;
+	}
+
+	$rtvars->{titulo} = "Bandeja de IRPF de Abonos";
+	$rtvars->{buscador_cedulas} = 1;
+
+	return 0;
+}
+
+sub opcion_irpfabonos_resumen($$) {
+	my ($rparam, $rtvars) = @_;
+
+	my $dbh_siap = $rparam->{dbh_siap};
+
+	my $resumen = irpfabonos::resumen($dbh_siap);
+
+	$rtvars->{js} = data2js($resumen);
+	$rtvars->{titulo} = "Datos pendientes en la bandeja de IRPF de Abonos";
 	$rtvars->{hay_resultado} = 1;
+
+	if ($rtvars->{admin}) {
+		$rtvars->{btn} = 'Cargar bandeja';
+		$rtvars->{btn_class} = 'btn-primary';
+		$rtvars->{modal_opcion} = 'cargar';
+		$rtvars->{bandeja} = 'ia';
+		$rtvars->{cedula} = 'IRPF Abonos';
+
+		$rtvars->{data_table_options} = '
+		  drawCallback: function(settings) {
+			$(".delayed").show();
+		  },
+		';
+
+	}
+
+	return 0;
+}
+
+sub opcion_irpfabonos_errores($$) {
+	my ($rparam, $rtvars) = @_;
+
+	my $dbh_siap = $rparam->{dbh_siap};
+
+	my $errores = irpfabonos::errores($dbh_siap);
+
+	$rtvars->{js} = data2js($errores);
+	$rtvars->{titulo} = "Personas con último pasaje en error";
+	$rtvars->{hay_resultado} = 1;
+
+	if ($#{$errores->{data}} > -1) {
+		# Agrego enlaces en la primer columna, para acceder a la consulta de esa cédula
+		$rtvars->{js} .= "
+\$('table#maintable').on( 'draw.dt', function () {
+  \$('table#maintable tbody tr td:nth-child(2)').addClass('link');
+  \$('table#maintable tbody tr td:nth-child(2)').click(function(){
+      window.location.href = '?opcion=consultaIA&cedula='+\$(this).text();
+  });
+});
+
+		";
+		$rtvars->{data_table_options} = '
+			"order": [[ 0, "desc" ]]
+		';
+	}
+
+	return 0;
+}
+
+sub opcion_irpfabonos_periodos($$) {
+	my ($rparam, $rtvars) = @_;
+
+	my $dbh_siap = $rparam->{dbh_siap};
+
+	my $periodos = periodos->new("ia",$dbh_siap);
+
+	if ($periodos) {
+		my $listado = $periodos->listado();
+
+		$rtvars->{js} = data2js($listado);
+		$rtvars->{titulo} = "Períodos de liquidación";
+		$rtvars->{hay_resultado} = 1;
+	}
 
 	return 0;
 }

@@ -42,7 +42,7 @@ UPDATE imultas
 JOIN (select perdocnum
       from imultas
       where resultado='PE'
-      group by perdocnum having sum(multcantdias)+sum(multcanthor)/8 > 22*2
+      group by perdocnum having sum(multcantdias)+sum(multcanthor)/8 > 23*2
      )X using (perdocnum)
 SET resultado='ERROR',mensaje='Exceso de horas'
 WHERE resultado='PE'

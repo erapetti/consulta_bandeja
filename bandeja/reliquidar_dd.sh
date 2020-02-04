@@ -57,7 +57,7 @@ fi
 source credenciales.sh
 
 PREBANDEJA=prebandejadd-v1.0.0-20190415.sql
-BANDEJA=bj-9.0.6.py
+BANDEJA=bj-9.0.7.py
 POSBANDEJA=posbandejadd-v1.0.1-20190426.sql
 
 MYSQL="mysql -h $HOST -u $USER -p$PASS --batch --skip-column-names"
@@ -97,12 +97,18 @@ fi
 
 if [ -z "$CI" ]
 then
-	SQL='set @ci="";'
+	PRESQL="set @ci='';
+                insert into periodos (bandeja,desde,hasta) values ('dd','$DESDE','$HASTA');"
 else
-	SQL='set @ci="'$CI'";'
+	PRESQL="set @ci='$CI';"
 fi
 
-SQL="start transaction; $SQL"`cat "$POSBANDEJA"`"commit;"
+
+SQL="
+  start transaction;
+  $PRESQL
+"`cat "$POSBANDEJA"`"
+  commit;"
 
 
 RESULTADO=`echo "$SQL" | $MYSQLSIAP siap_ces_tray 2>&1`

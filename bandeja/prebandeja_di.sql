@@ -1,5 +1,5 @@
 
-set @desde=concat(year(curdate())-if(month(curdate())<2,1,0),'-03-01');
+set @desde=concat(year(curdate())-if(month(curdate())<=2,1,0),'-03-01');
 
 -- ----------------------------------------------------------------------------------------------------------------------------------
 -- -- Todas las designaicones Interinas y Suplentes sin fecha de registro de cese, 
@@ -12,14 +12,16 @@ join PUESTOS P on P.Puestoid = RL.PuestoId
 join (select DenomCargoCesId denomcargoid from DENOMINACIONES_CARGOS_SIAP_CES group by 1) DC USING (denomcargoid)
 where (RelLabDesignCaracter = 'I' or RelLabDesignCaracter = 'S')
 and RelLabCeseFchAlta is null 
-and RelLabFchIniActividades > '2018-03-01';
+and RelLabFchIniActividades > '2018-03-01'
+and migradd_lote is null
+;
 
 -- ----------------------------------------------------------------------------------------------------------------------------------
 -- las anulaciones de los ceses se grabe en la tabla RELACIONES_LABORALES en el campo RelLabCeseFchAlta, 
 -- la fecha en la que se realiza la anulación y por tanto se corrige la tabla (RELACIONES_LABORALES) 
 -- con datos como causal de baja y fecha real de cese.
 
-select 'RL con menor fecha actualización del cese que la anulación' mensaje,ifnull(sum(RelLabCeseFchAlta < AnulacionFchAlta),0) cant
+select 'RL con menor fecha actualización del cese que la anulación' mensaje,ifnull(sum(ifnull(RelLabCeseFchAlta,'1000-01-01') < AnulacionFchAlta),0) cant
 from RELACIONES_LABORALES
 join (select AnulacionValorPkTabla,max(AnulacionFchAlta)AnulacionFchAlta
       from ANULACIONES
@@ -31,6 +33,7 @@ where (RelLabCeseFchAlta is null
      or DATE(RelLabCeseFchAlta) < DATE(AnulacionFchAlta)
 )
   and RelLabVacanteAnioLectivo>=2019
+  and migradd_lote is null
 ;
 
 -- ----------------------------------------------------------------------------------------------------------------------------------
@@ -72,7 +75,9 @@ join RELACIONES_LABORALES RLS ON RLS.RelLabId=SuplRelLabId
 where estado='A'
   and greatest(RLS.RelLabFchIniActividades,adddate(ifnull(date(SuplFchAlta),'1000-01-01'),1)) < @desde
   and RLS.RelLabAnulada=0
-  and (ifnull(RLS.RelLabCeseFchReal,'1000-01-01') = '1000-01-01' or RLS.RelLabCeseFchReal > @desde);
+  and (ifnull(RLS.RelLabCeseFchReal,'1000-01-01') = '1000-01-01' or RLS.RelLabCeseFchReal > @desde)
+  and migradd_lote is null
+;
 
 -- ----------------------------------------------------------------------------------------------------------------------------------
 -- -- Los registros en la tabla de conversión que no son de directores o subdirectores no tienen que tener categoría

@@ -1,6 +1,6 @@
 START TRANSACTION;
 
--- set @desdeBandeja='2019-04-01'; set @hastaBandeja='2019-05-01'; set @modo='TODO';
+-- set @desdeBandeja='2019-08-16'; set @hastaBandeja='2019-09-15'; set @modo='TODO';
 
 use Personal;
 
@@ -24,7 +24,7 @@ WHERE InasisLicEstado in ('P','R')
   AND InasCausId<>'ATD'
   AND InasCausTipo='I'
   AND (@modo='TODO' OR InasisLicTipoMov='E')
-  AND (InasisLicFchIni>date_sub(curdate(),interval 5 month))
+  AND (InasisLicFchIni>date_sub(curdate(),interval 5 month) or inasislicid in (1549152,1549155,1549156))
 ;
 
 set @desde=(select min(InasisLicFchIni) from INASISLIC where InasisLicEstado='X');
@@ -89,14 +89,14 @@ FROM
     InasisLicId_Orig
 
    FROM
-     (SELECT SillaDependId DependID,
-             a.InsCod,
-             a.CarNum,
-             a.AsiCod,
-             a.Caracter,
+     (SELECT DependID,
+             InsCod,
+             CarNum,
+             AsiCod,
+             Caracter,
              PERSONALPERID,
              perdocid,
-             if(InasisLicCicloPago is not null,InasisLicCicloPago,RelLabCicloPago) CicloPago,
+             CicCod CicloPago,
              CargaHorariaCantHoras HorasPorSemana,
              InasisLicId,
              InasisLicFchIni,
@@ -105,25 +105,28 @@ FROM
              InasisLicTipoMov='E' ENMIENDA,
              sum(if(InasisLicDiaHora='H',InasisLicCant,0)) horas,
              sum(if(InasisLicDiaHora='D',1,0)) dias
-      FROM Personal.INASISLIC
-      JOIN Personal.INASCAUSALES USING (InasCausId)
-      JOIN Personal.FUNCIONES_ASIGNADAS USING (FuncAsignadaId)
-      JOIN Personal.CARGAS_HORARIAS USING (CargaHorariaId)
-      JOIN Personas.PERSONASDOCUMENTOS ON personalperid=perid AND paiscod='UY' AND doccod='CI'
-      JOIN Personal.FUNCIONES_RELACION_LABORAL USING (FuncAsignadaId)
-      JOIN Personal.RELACIONES_LABORALES RL USING (RelLabId,PersonalPerId)
-      JOIN Personal.SILLAS SRL ON SRL.SillaId=RL.SillaId
-      JOIN (
-           select DependId,cedula,anio,mes,Ciccod,ANY_VALUE(InsCod) InsCod,ANY_VALUE(CarNum) CarNum,ANY_VALUE(AsiCod) AsiCod,ANY_VALUE(Caracter) Caracter
-           from Personal.as400
-           where (anio=year(@desde) and mes>=month(@desde)
-                  or anio>year(@desde)
-                 )
-             and tipo=3
-           group by 1,2,3,4,5
-      ) a on a.DependId=SillaDependId and a.cedula=cast(perdocid as unsigned) and a.anio=year(InasisLicFchIni) and a.mes=month(InasisLicFchIni) and a.CicCod=if(InasisLicCicloPago is not null,InasisLicCicloPago,RelLabCicloPago)
-      WHERE InasisLicEstado='X'
-        AND CargaHorariaCantHoras>0
+      FROM 
+        (SELECT INASISLIC.*,ANY_VALUE(CargaHorariaCantHoras) CargaHorariaCantHoras,ANY_VALUE(a.DependId) DependId,ANY_VALUE(a.CicCod) CicCod,ANY_VALUE(a.InsCod) InsCod,ANY_VALUE(a.CarNum) CarNum,ANY_VALUE(a.AsiCod) AsiCod,ANY_VALUE(a.Caracter) Caracter,ANY_VALUE(perdocid) perdocid
+         FROM Personal.INASISLIC
+         JOIN Personal.FUNCIONES_ASIGNADAS USING (FuncAsignadaId)
+         JOIN Personal.CARGAS_HORARIAS USING (CargaHorariaId)
+         JOIN Personal.FUNCIONES_RELACION_LABORAL USING (FuncAsignadaId)
+         JOIN Personal.RELACIONES_LABORALES RL USING (RelLabId,PersonalPerId)
+         JOIN Personal.SILLAS SRL ON SRL.SillaId=RL.SillaId
+         JOIN Personas.PERSONASDOCUMENTOS ON personalperid=perid AND paiscod='UY' AND doccod='CI'
+         JOIN (
+              select DependId,cedula,anio,mes,Ciccod,ANY_VALUE(InsCod) InsCod,ANY_VALUE(CarNum) CarNum,ANY_VALUE(AsiCod) AsiCod,ANY_VALUE(Caracter) Caracter
+              from Personal.as400
+              where (anio=year(@desde) and mes>=month(@desde)
+                     or anio>year(@desde)
+                    )
+                and tipo=3
+              group by 1,2,3,4,5
+         ) a on a.DependId=SillaDependId and a.cedula=cast(perdocid as unsigned) and a.anio=year(InasisLicFchIni) and a.mes=month(InasisLicFchIni) and a.CicCod=if(InasisLicCicloPago is not null,InasisLicCicloPago,RelLabCicloPago)
+         WHERE InasisLicEstado='X'
+           AND CargaHorariaCantHoras>0
+         GROUP BY InasisLicId,FuncAsignadaId,InasisLicIdentificador
+        ) IRL
       GROUP BY 1,2,3,4,5,6,7,8,9,10,11,12,13,14
       ) I
    LEFT JOIN (

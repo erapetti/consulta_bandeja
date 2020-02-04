@@ -8,7 +8,9 @@
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="../../sueldos/css/bootstrap.min.css">
     <!-- link rel="stylesheet" href="../../sueldos/css/font-awesome.min.css" -->
-    <link rel="stylesheet" href="../../sueldos/css/fontawesome-all.css">
+    <!-- link rel="stylesheet" href="../../sueldos/css/fontawesome-all.css" -->
+    <link rel="preload" href="../../sueldos/webfonts/fa-solid-900.woff2" as="font">
+    <link rel="stylesheet" href="../../sueldos/css/all.css">
     <link rel="stylesheet" href="../../sueldos/css/dataTables.bootstrap4.min.css">
 
     <title>Consulta a la bandeja de sueldos</title>
@@ -26,21 +28,9 @@
 	    <ul class="nav flex-column">
 [% FOREACH dir IN opciones -%]
   [% IF dir.titulo -%]
-	      <li class="nav-item nav-folder">
-	        <b>[% dir.titulo %]</b>
+	      <li class="nav-item">
+	        <a class="nav-link[% IF dir.titulo==modulo %] active[% END %]" href="?modulo=[% dir.titulo %][% IF cedula %]&cedula=[% cedula %][% END %]" blur="1">[% dir.titulo %]</a>
 
-	        <ul class="nav flex-column ml-3">
-    [% FOREACH opc IN dir.items -%]
-      [% IF opc.titulo -%]
-	           <li class="nav-item">
-	             <a class="nav-link[% IF opc.opcion==opcion %] active[% END %]" href="?opcion=[% opc.opcion %][% IF cedula %]&cedula=[% cedula %][% END %]" blur="1">
-	               <span class="[% opc.icono %] feather"></span>
-	               [% opc.titulo %]
-	             </a>
-	           </li>
-      [%- END %]
-    [%- END %]
-	        </ul>
 	      </li>
   [%- END %]
 [%- END %]
@@ -48,8 +38,30 @@
 	  </div>
 	</nav>
 
-	<main role="main" class="col-md-9 ml-sm-auto col-lg-10 px-4 mb-3">
+	<main role="main" class="col-md-9 ml-sm-auto col-lg-10 px-0">
 
+<nav class="navbar navbar-expand-lg navbar-light" style="background-color:#e5f1ff">
+  <span class="navbar-brand mb-0 h1">[%- modulo %]:</span>
+  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+    <span class="navbar-toggler-icon"></span>
+  </button>
+  <div class="collapse navbar-collapse" id="navbarSupportedContent">
+    <ul class="navbar-nav mr-auto">
+    [% FOREACH opc IN items -%]
+      [% IF opc.titulo -%]
+      <li class="nav-item[% IF opc.opcion==opcion %] active[% END %]">
+        <a class="nav-link" href="?opcion=[% opc.opcion %][% IF cedula %]&cedula=[% cedula %][% END %]" blur="1">[%- opc.titulo %] </a>
+      </li>
+      [%- END %]
+    [%- END %]
+    </ul>
+    [% IF admin %]
+    <div class="float-right"><span class="fas fa-crown font-delayed" style="visibility:hidden" aria-hidden="true"></span></div>
+    [% END %]
+  </div>
+</nav>
+
+          <div class="px-4 mb-3">
 	  <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
 	    <h1 class="h2">[% titulo %]</h1>
 	  </div>
@@ -115,6 +127,8 @@
 [% IF btn %]
 	  <button type="button" class="btn [% btn_class %][% IF js %] delayed[% END %]" onClick="javascript:[% modal_opcion %]('[% bandeja %]','[% cedula %]')">[% btn %]</button>
 [% END %]
+
+	  </div>
 	</main>
       </div>
     </div>
@@ -288,7 +302,7 @@
 	function borrar(bandeja,cedula) {
 		modal("Borrar pendientes", "Esta operación va a borrar la liquidación pendiente para este docente", "Borrando", bandeja, cedula, "borrar", "Borrar");
 	}
-        $('div.sidebar-sticky').scrollTop( $('li:has(ul > li > a.nav-link.active)').offset().top );
+        // $('div.sidebar-sticky').scrollTop( $('li:has(ul > li > a.nav-link.active)').offset().top );
 	$('a[blur]').click(function(evnt){
 		if (!(evnt.ctrlKey || evnt.shiftKey || evnt.metaKey || (evnt.button && evnt.button == 1))) {
 			setTimeout(function(){
@@ -296,6 +310,10 @@
 				$('#spinner').show();
 			}, 1500);
 		}
+	});
+        // delayed font
+	$(window).bind("load", function() {
+		$('.font-delayed').css('visibility','visible');
 	});
     </script>
   </body>

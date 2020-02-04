@@ -12,7 +12,7 @@ sub new($$) {
 	my $class = shift;
 	my ($bandeja, $dbh) = @_;
 
-	my %validos = ("dd"=>1, "di"=>1, "he"=>1, "vi"=>1, "mu"=>1);
+	my %validos = ("dd"=>1, "di"=>1, "he"=>1, "vi"=>1, "mu"=>1, "ia"=>1);
 
 	return undef if (!defined($validos{$bandeja}));
 
@@ -102,20 +102,22 @@ WHERE p1.bandeja='".$this->{bandeja}."'
 sub listado() {
 	my $this = shift;
 
+	my $year = (localtime(time()))[5] + ( (localtime(time()))[4]+1 < 3 ? -1 : 0 ) + 1900;
+
 	my $SQL = "
 
 SELECT replace(desde,' 00:00:00','') desde,replace(hasta,' 00:00:00','')hasta
 FROM siap_ces_tray.periodos
 WHERE bandeja='".$this->{bandeja}."'
-  AND (desde>='2019-03-01'
-       OR hasta>='2019-03-01'
+  AND (desde >= ?
+       OR hasta >= ?
   )
 ORDER BY id
 
 ";
 
 	my $sth = $this->{dbh}->prepare($SQL);
-	$sth->execute();
+	$sth->execute($year.'-03-01', $year.'-03-01');
 
 	(defined($sth) && !$DBI::errstr) or return undef;
 

@@ -51,7 +51,7 @@ sub resumen($) {
 
 	my $sth = portal3::dbGet($dbh, "siap_ces_tray.imultas",
 			["MultFchCarga","count(distinct perdocnum) Personas","count(*) Registros"],
-			"MultFchProc is null and MultFchCarga is not null",
+			"resultado='PE'",
 			"group by 1 order by 1"
 	               );
 
