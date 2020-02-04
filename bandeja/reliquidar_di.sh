@@ -53,7 +53,7 @@ fi
 source credenciales.sh
 
 PREBANDEJA=prebandeja_di.sql
-BANDEJA=bandeja2-v2.02.01-20190924.sql
+BANDEJA=bandeja2-v2.02.02-20200204.sql
 POSBANDEJA=bandeja3-v1.20.02-20190322.sql
 
 MYSQL="mysql -h $HOST -u $USER -p$PASS --batch --skip-column-names"
@@ -200,7 +200,7 @@ $SQL5;" | $MYSQL Personal 2>&1`
 
 err=$?
 
-RESULTADO=`echo "$RESULTADO" | sed 's/mysql.*Using a password on the command line.*//'`
+RESULTADO=`echo "$RESULTADO" | sed 's/mysql.*Using a password on the command line.*//;s/	//g'`
 
 if [ $err -ne 0 ]
 then
