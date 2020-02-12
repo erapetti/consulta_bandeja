@@ -53,7 +53,7 @@ fi
 source credenciales.sh
 
 PREBANDEJA=prebandeja_di.sql
-BANDEJA=bandeja2-v2.02.02-20200204.sql
+BANDEJA=bandeja2-v2.02.03-20200206.sql
 POSBANDEJA=bandeja3-v1.20.02-20190322.sql
 
 MYSQL="mysql -h $HOST -u $USER -p$PASS --batch --skip-column-names"
