@@ -30,7 +30,6 @@ then
 	exit 2
 fi
 
-
 if ! date --date "$DESDE" 2>&1 > /dev/null
 then
 	echo ERROR: Fecha desde en formato incorrecto
@@ -143,6 +142,7 @@ $SQL5;" | $MYSQL Personal 2>&1`
 
 err=$?
 
+
 RESULTADO=`echo "$RESULTADO" | sed 's/mysql.*Using a password on the command line.*//;s/\t//g'`
 
 if [ $err -ne 0 ]
@@ -157,6 +157,10 @@ then
 	exit 9
 fi
 
-echo "$RESULTADO" | mysql -h "$HOSTSIAP" -u "$USERSIAP" "-p$PASSSIAP" siap_ces_tray 2>&1 | grep -v "Using a password on the command line"
+
+echo "start transaction;
+$RESULTADO
+insert into periodos (bandeja,desde,hasta) values ('he','$DESDE','$HASTA');
+commit;" | mysql -h "$HOSTSIAP" -u "$USERSIAP" "-p$PASSSIAP" siap_ces_tray 2>&1 | grep -v "Using a password on the command line"
 
 exit 0

@@ -58,29 +58,25 @@ if (!$cedula) {
 			respuesta("No se pudo obtener el período anterior");
 			exit(0);
 		}
-		if ($dias<5) {
-			respuesta("No se puede crear un nuevo período para la bandeja $bandeja porque el período anterior terminó hace menos de 5 días");
-			exit(0);
-		}
-		if ($bandeja eq "he" || $bandeja eq "vi") {
-			my $err = $periodos->agregar_hasta_ayer();
-			if ($err) {
-				respuesta("No se pudo crear un período nuevo", $err);
-				exit(0);
-			}
-			($desde,$hasta) = $periodos->ultimo();
+#		if ($dias<5) {
+#			respuesta("No se puede crear un nuevo período para la bandeja $bandeja porque el período anterior terminó hace menos de 5 días");
+#			exit(0);
+#		}
+		if ($bandeja eq "dd" || $bandeja eq "he" || $bandeja eq "vi") {
+			$desde = $hasta;
+			$hasta = calcularHastaHoy($desde);
 		} else {
 			$desde = $hasta;
 			$hasta = calcularHastaDia15($desde);
+		}
 
-			if (!$hasta) {
-				respuesta("No se pudo definir una fecha final a partir de la fecha inicial $desde");
-				exit(0);
-			}
-			if ($desde eq $hasta) {
-				respuesta("No se puede definir el período a reliquidar porque quedaría vacío");
-				exit(0);
-			}
+		if (!$hasta) {
+			respuesta("No se pudo definir una fecha final a partir de la fecha inicial $desde");
+			exit(0);
+		}
+		if ($desde ge $hasta) {
+			respuesta("No se puede definir el período a reliquidar porque quedaría vacío, desde=$desde hasta=$hasta");
+			exit(0);
 		}
 	} elsif ($bandeja eq "di") {
 
@@ -137,7 +133,7 @@ while (<CMD>) {
 close(CMD);
 
 if ($? ne 0) {
-	respuesta("El proceso de reliquidación terminó con error ".($?/256), $out);
+	respuesta("El proceso de reliquidación terminó con código de error ".($?/256), $out);
 	exit(0);
 }
 
@@ -178,6 +174,14 @@ sub respuesta($;$) {
 		$out =~ s/"/\\"/g;
 	}
 	print '{"error":"'.$error.($out ? '","salida":"'.$out : '').'"}';
+}
+
+sub calcularHastaHoy() {
+
+	my ($sec,$min,$hour,$mday,$mon,$year) = localtime(time);
+	my $hasta = sprintf "%04d-%02d-%02d 00:00:00", $year+1900, $mon+1, $mday;
+
+	return $hasta;
 }
 
 sub calcularHastaDia15($) {
