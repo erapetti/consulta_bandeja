@@ -40,7 +40,7 @@ join
    (select perid,dependid
     from AbonosDocentes.ABONOSDEPENDDOCENTES
     where AbonoAnulado = '1000-01-01'
-      and AbonoMesYear>=concat(@anio,'-',@mes,'-01')
+      and AbonoMesYear=concat(@anio,'-',@mes,'-01')
       and AbonoViajesEmitidos>0
     group by 1,2
    ) AD
