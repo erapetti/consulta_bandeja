@@ -9,7 +9,7 @@ use strict;
 use DBI;
 use CGI qw/:standard/;
 use CGI::Carp qw/fatalsToBrowser/;
-use Cache::Memcached;
+#use Cache::Memcached;
 use Template;
 use portal3 qw/getSession leoPermiso dbDisconnect dbGet myScriptName checkFormat error/;
 use periodos;

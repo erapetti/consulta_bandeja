@@ -9,7 +9,7 @@ use strict;
 use DBI;
 use CGI qw/:standard/;
 use CGI::Carp qw/fatalsToBrowser/;
-use Cache::Memcached;
+#use Cache::Memcached;
 use Template;
 use portal3 qw/getSession leoPermiso dbDisconnect dbGet myScriptName checkFormat error/;
 use periodos;
@@ -555,6 +555,11 @@ sub opcion_bandejadi_resumen($$) {
 		$rtvars->{modal_opcion} = 'cargar';
 		$rtvars->{bandeja} = 'di';
 		$rtvars->{cedula} = 'Docencia Indirecta';
+		$rtvars->{data_table_options} = '
+		  drawCallback: function(settings) {
+			$(".delayed").show();
+		  },
+		';
 	}
 
 	return 0;
