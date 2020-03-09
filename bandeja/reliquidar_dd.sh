@@ -58,7 +58,7 @@ source credenciales.sh
 
 PREBANDEJA=prebandejadd-v1.0.0-20190415.sql
 BANDEJA=bj-9.0.7.py
-POSBANDEJA=posbandejadd-v1.0.1-20190426.sql
+POSBANDEJA=posbandejadd-v1.0.2-20200309.sql
 
 MYSQL="mysql -h $HOST -u $USER -p$PASS --batch --skip-column-names"
 MYSQLSIAP="mysql -h $HOSTSIAP -u $USERSIAP -p$PASSSIAP --batch --skip-column-names"
